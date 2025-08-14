@@ -9,6 +9,8 @@ import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimatio
 import { teams } from './data.js';
 import { updateLayout } from './game.js';
 
+import { updateLayout, withFirebaseSync } from './game.js';
+
 /**
  * Handles the process of selecting a random NFL team.
  * @param {number} playerNum - The player number (1 or 2).

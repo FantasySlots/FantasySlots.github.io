@@ -46,11 +46,7 @@ export function selectAvatar(playerNum, avatarUrl) {
     playerData[playerNum].avatar = avatarUrl;
     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
     // The preview and title will be updated by updateLayout when it's called after selection/modal close.
-    // In multiplayer, updateLayout is triggered by the onValue listener after sync.
-    // In local mode, we call it directly.
-    if (new URLSearchParams(window.location.search).get('room') === null) {
-        updateLayout();
-    }
+    updateLayout();
 }
 
 /**

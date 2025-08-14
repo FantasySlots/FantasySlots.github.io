@@ -137,19 +137,17 @@ function withFirebaseSync(actionFn) {
 
         // NEW: After a successful draft action, switch the turn.
         const shouldSwitchTurnAfterAction = ['assignPlayerToSlot', 'autoDraft'].includes(actionFn.name);
-        if (shouldSwitchTurnAfterAction) {
-            // Check if auto-draft succeeded before switching turns
-            // For assignPlayerToSlot, success is implied by reaching this point.
-            if (actionFn.name === 'autoDraft') {
-                // A bit of a workaround: autoDraft doesn't return success/fail,
-                // but it nullifies the team upon success. We check that.
-                if (playerData[playerNum].team === null) {
-                    switchTurn();
-                }
-            } else {
-                 switchTurn();
-            }
-        }
+       if (shouldSwitchTurnAfterAction) {
+    const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
+    if (!bothFull) {
+        
+                switchTurn();
+            
+       
+    } else {
+        setGamePhase('COMPLETE');
+    }
+}
         
         // After the action modifies the local state, sync it to Firebase.
         await syncWithFirebase();

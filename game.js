@@ -4,7 +4,7 @@
  */
 
 // Import from new modular files
-import { gameState, playerData, isFantasyRosterFull, isPlayerPositionUndraftable, switchTurn, setGamePhase } from './playerState.js';
+import { gameState, playerData, isFantasyRosterFull, isPlayerPositionUndraftable, switchTurn, setGamePhase, updateLocalPlayerData } from './playerState.js';
 import { getOrCreateChild, updatePlayerContentDisplay, displayDraftInterface, displayFantasyRoster, renderPlayerAvatar } from './uiRenderer.js';
 import { showSlotSelectionModal, hideSlotSelectionModal, hideRosterModal, showPlayerStatsModal, hidePlayerStatsModal, renderPlayerStatsInModal, showAvatarSelectionModal, hideAvatarSelectionModal } from './uiModals.js';
 import { confirmName, selectAvatar, updateAvatarPreview, AVATAR_SVGS, resetPlayer } from './playerActions.js';
@@ -233,7 +233,8 @@ async function setupMultiplayerGame() {
             console.log("Received data from Firebase:", remoteData);
             // Deep copy to avoid mutation issues
             Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
-            Object.assign(playerData, JSON.parse(JSON.stringify(remoteData.playerData || {})));
+            // Safely update player data using the new helper function
+            updateLocalPlayerData(remoteData.playerData);
             // NEW: Pass the players presence node to updateLayout
             updateLayout(false, remoteData.players);
         }
@@ -409,6 +410,12 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
 
     // Update internal display for each player section based on their individual state
     [1, 2].forEach(playerNum => {
+        // NEW: Add a guard to ensure player data exists before proceeding.
+        if (!playerData[playerNum]) {
+            console.warn(`playerData for player ${playerNum} is missing. Skipping layout update for this player.`);
+            return;
+        }
+
         const playerSection = document.getElementById(`player${playerNum}-section`);
         const nameInputContainer = document.querySelector(`#player${playerNum}-section .name-input-container`);
         const playerDisplayDiv = document.getElementById(`player${playerNum}-display`);

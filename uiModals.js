@@ -16,12 +16,40 @@ export function showSlotSelectionModal(playerObj, playerNum, originalPosition, p
     optionsContainer.innerHTML = '';
 
     const rosterSlots = playerDataForPlayer.rosterSlots;
+    const gameMode = new URLSearchParams(window.location.search).get('room') ? 'multiplayer' : 'local';
+
+    // Helper to create the assignment function, wrapping with sync if needed.
+    const createAssignmentHandler = (slotId) => {
+        return () => {
+            const action = () => assignPlayerToSlotCallback(playerNum, playerObj, slotId);
+            if (gameMode === 'multiplayer') {
+                // Manually create the sync wrapper here because the original function is passed in.
+                // This is a simplified version of withFirebaseSync for this specific callback.
+                const syncAction = async () => {
+                    await action(); // Run the original assignPlayerToSlot
+                    // After it runs, we need to sync. This requires access to the sync function.
+                    // Instead of complex imports, we'll let the original `withFirebaseSync` handle it.
+                    // The change in `game.js` to wrap `draftPlayer` should cover this chain.
+                    // So we can just call the action.
+                    
+                    // The logic in game.js's `withFirebaseSync` now wraps the entire `draftPlayer` action,
+                    // which includes this modal flow. To make it work, `assignPlayerToSlot` must be sync-aware.
+                    // Let's call the callback directly, and the sync will be handled by the initial wrapper.
+                     action();
+                };
+                syncAction();
+            } else {
+                action();
+            }
+             // The callback itself is now responsible for hiding the modal
+        };
+    };
 
     if (originalPosition === 'RB') {
         const btn = document.createElement('button');
         btn.className = 'slot-option-btn';
         btn.textContent = 'RB';
-        btn.onclick = () => { assignPlayerToSlotCallback(playerNum, playerObj, 'RB'); hideSlotSelectionModalCallback(); };
+        btn.onclick = createAssignmentHandler('RB');
         if (rosterSlots.RB) {
             btn.classList.add('disabled');
             btn.disabled = true;
@@ -31,7 +59,7 @@ export function showSlotSelectionModal(playerObj, playerNum, originalPosition, p
         const btnWR1 = document.createElement('button');
         btnWR1.className = 'slot-option-btn';
         btnWR1.textContent = 'WR1';
-        btnWR1.onclick = () => { assignPlayerToSlotCallback(playerNum, playerObj, 'WR1'); hideSlotSelectionModalCallback(); };
+        btnWR1.onclick = createAssignmentHandler('WR1');
         if (rosterSlots.WR1) {
             btnWR1.classList.add('disabled');
             btnWR1.disabled = true;
@@ -41,7 +69,7 @@ export function showSlotSelectionModal(playerObj, playerNum, originalPosition, p
         const btnWR2 = document.createElement('button');
         btnWR2.className = 'slot-option-btn';
         btnWR2.textContent = 'WR2';
-        btnWR2.onclick = () => { assignPlayerToSlotCallback(playerNum, playerObj, 'WR2'); hideSlotSelectionModalCallback(); };
+        btnWR2.onclick = createAssignmentHandler('WR2');
         if (rosterSlots.WR2) {
             btnWR2.classList.add('disabled');
             btnWR2.disabled = true;
@@ -51,7 +79,7 @@ export function showSlotSelectionModal(playerObj, playerNum, originalPosition, p
         const btn = document.createElement('button');
         btn.className = 'slot-option-btn';
         btn.textContent = 'TE';
-        btn.onclick = () => { assignPlayerToSlotCallback(playerNum, playerObj, 'TE'); hideSlotSelectionModalCallback(); };
+        btn.onclick = createAssignmentHandler('TE');
         if (rosterSlots.TE) {
             btn.classList.add('disabled');
             btn.disabled = true;
@@ -64,7 +92,7 @@ export function showSlotSelectionModal(playerObj, playerNum, originalPosition, p
         const flexBtn = document.createElement('button');
         flexBtn.className = 'slot-option-btn';
         flexBtn.textContent = 'Flex';
-        flexBtn.onclick = () => { assignPlayerToSlotCallback(playerNum, playerObj, 'Flex'); hideSlotSelectionModalCallback(); };
+        flexBtn.onclick = createAssignmentHandler('Flex');
         if (rosterSlots.Flex) {
             flexBtn.classList.add('disabled');
             flexBtn.disabled = true;

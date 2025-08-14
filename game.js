@@ -47,7 +47,7 @@ async function syncWithFirebase() {
         console.error("Firebase sync failed:", error);
     } finally {
         // Use a short timeout to ensure the write has time to propagate before we listen again
-        setTimeout(() => { isSyncing = false; }, 200);
+        setTimeout(() => { isSyncing = false; }, 100);
     }
 }
 
@@ -113,13 +113,14 @@ function addPlayer2() {
  */
 function withFirebaseSync(actionFn) {
     return async (...args) => {
-        const playerNum = args[0]; // The player number the action is for (1 or 2)
+        // For some actions, the player number is the first argument.
+        // For others (like selectAvatar), it might be elsewhere. We assume it's the first for turn checks.
+        const playerNum = args[0]; 
 
         if (gameMode === 'multiplayer') {
             // Block actions for the other player's UI.
             // A user should only be able to trigger actions for their own player number.
             if (playerNum !== localPlayerNum) {
-                // This can happen if the UI isn't fully disabled, so it's a good safeguard.
                 console.warn(`Action for Player ${playerNum} blocked because you are Player ${localPlayerNum}.`);
                 return;
             }
@@ -134,6 +135,7 @@ function withFirebaseSync(actionFn) {
         
         // If checks pass, execute the original action.
         await actionFn(...args);
+        
         // After the action modifies the local state, sync it to Firebase.
         await syncWithFirebase();
     };
@@ -236,7 +238,7 @@ async function setupMultiplayerGame() {
             // Safely update player data using the new helper function
             updateLocalPlayerData(remoteData.playerData);
             // NEW: Pass the players presence node to updateLayout
-            updateLayout(false, remoteData.players);
+            updateLayout(remoteData.players);
         }
     });
     
@@ -356,24 +358,14 @@ function getOrCreateClientId() {
 /**
  * Updates the main layout of the application (single player view vs. two-player view)
  * and the internal display of each player section (name input vs. team display, draft vs. fantasy roster).
- * @param {boolean} shouldSwitchTurn - Whether to switch the current player turn.
  * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
-export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
+export function updateLayout(playersPresence = {}) {
     // Check game phase transition
     if (gameState.phase === 'NAME_ENTRY' && playerData[1].name && playerData[2].name) {
         setGamePhase('DRAFTING');
     }
 
-    if (shouldSwitchTurn && gameState.phase === 'DRAFTING') {
-        // In multiplayer, only the current player can switch the turn
-        if (gameMode !== 'multiplayer' || localPlayerNum === gameState.currentPlayer) {
-            switchTurn();
-        } else if (gameMode === 'local') {
-            switchTurn();
-        }
-    }
-    
     if (isFantasyRosterFull(1) && isFantasyRosterFull(2)) {
         setGamePhase('COMPLETE');
     }
@@ -481,7 +473,17 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
                 if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
                     const otherPlayerNum = playerNum === 1 ? 2 : 1;
                     const opponentData = playerData[otherPlayerNum];
-                    displayDraftInterface(playerNum, playerData[playerNum].team.rosterData, playerData[playerNum], opponentData, isFantasyRosterFull, isPlayerPositionUndraftable, draftPlayer);
+                    // The draftPlayer callback is now wrapped in withFirebaseSync for multiplayer
+                    const draftCallback = (pNum, player, pos) => {
+                        const action = () => draftPlayer(pNum, player, pos);
+                        // Wrap the action if in multiplayer mode
+                        if (gameMode === 'multiplayer') {
+                            withFirebaseSync(action)();
+                        } else {
+                            action();
+                        }
+                    };
+                    displayDraftInterface(playerNum, playerData[playerNum].team.rosterData, playerData[playerNum], opponentData, isFantasyRosterFull, isPlayerPositionUndraftable, draftCallback);
                 } else {
                     const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
                     inlineRosterEl.innerHTML = ''; 

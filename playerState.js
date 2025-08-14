@@ -34,6 +34,24 @@ export const playerData = {
 };
 
 /**
+ * NEW: Safely updates the local playerData object with data from Firebase.
+ * This handles cases where Firebase might return an array-like object.
+ * @param {object} remotePlayerData - The playerData object from Firebase.
+ */
+export function updateLocalPlayerData(remotePlayerData) {
+    if (!remotePlayerData) return;
+
+    // Firebase can sometimes return an array with null at index 0
+    // so we check for keys '1' and '2' specifically.
+    if (remotePlayerData['1']) {
+        Object.assign(playerData[1], JSON.parse(JSON.stringify(remotePlayerData['1'])));
+    }
+    if (remotePlayerData['2']) {
+        Object.assign(playerData[2], JSON.parse(JSON.stringify(remotePlayerData['2'])));
+    }
+}
+
+/**
  * NEW: Switches the current player turn.
  */
 export function switchTurn() {
@@ -62,6 +80,10 @@ export function resetGameState() {
  * @returns {boolean} True if the roster is full, false otherwise.
  */
 export function isFantasyRosterFull(playerNum) {
+    // Add a guard to prevent errors if playerData for the player or its rosterSlots doesn't exist yet.
+    if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
+        return false;
+    }
     const roster = playerData[playerNum].rosterSlots;
     const requiredSlots = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'Flex', 'DEF', 'K'];
     return requiredSlots.every(slot => roster[slot] !== null);
@@ -74,6 +96,10 @@ export function isFantasyRosterFull(playerNum) {
  * @returns {boolean} True if no slot is available for that position, false otherwise.
  */
 export function isPlayerPositionUndraftable(playerNum, originalPosition) {
+    // Add a guard to prevent errors.
+    if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
+        return true; // Assume undraftable if data is missing
+    }
     const rosterSlots = playerData[playerNum].rosterSlots;
 
     if (originalPosition === 'QB') {

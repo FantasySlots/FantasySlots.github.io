@@ -257,16 +257,19 @@ export async function autoDraft(playerNum) {
 
                 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
+                // This action completes a turn, so we switch the current player.
+                switchTurn();
+
                 setTimeout(() => {
                     hideTeamAnimationOverlay();
-                    updateLayout(true); // Update layout and switch turns
+                    updateLayout(); // Update layout, no longer needs to switch turn
                 }, 1500); // Show drafted player for a bit
             } else {
                  showTeamAnimationOverlay(`No draftable player found! Try again.`);
                 setTimeout(() => {
                     hideTeamAnimationOverlay();
                     // Don't switch turns if failed
-                    updateLayout(false); 
+                    updateLayout(); 
                 }, 1500);
             }
 
@@ -275,7 +278,7 @@ export async function autoDraft(playerNum) {
             showTeamAnimationOverlay('Auto-draft failed!');
             setTimeout(() => {
                 hideTeamAnimationOverlay();
-                updateLayout(false); // Do not switch turn on error
+                updateLayout(); // Do not switch turn on error
             }, 1500);
         }
     }, animationDuration - 1500); // Start searching before visual animation ends
@@ -300,7 +303,6 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    // This check ensures only one player is drafted per 'team spin'
     if (playerData[playerNum].draftedPlayers.length > 0) {
         console.warn(`Player ${playerNum} has already drafted a player from this team. draftedPlayers.length: ${playerData[playerNum].draftedPlayers.length}`);
         alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
@@ -316,7 +318,21 @@ export function draftPlayer(playerNum, player, originalPosition) {
     const flexPositions = ['RB', 'WR', 'TE'];
 
     if (flexPositions.includes(originalPosition)) {
-        showSlotSelectionModal(player, playerNum, originalPosition, playerData[playerNum], assignPlayerToSlot, hideSlotSelectionModal);
+        // Flex positions still go through slot selection modal
+        showSlotSelectionModal(
+            player, 
+            playerNum, 
+            originalPosition, 
+            playerData[playerNum], 
+            (pNum, playerObj, slotId) => {
+                if (gameMode === 'multiplayer') {
+                    withFirebaseSync(assignPlayerToSlot)(pNum, playerObj, slotId);
+                } else {
+                    assignPlayerToSlot(pNum, playerObj, slotId);
+                }
+            },
+            hideSlotSelectionModal
+        );
     } else {
         let targetSlot;
         if (originalPosition === 'QB') targetSlot = 'QB';
@@ -324,13 +340,18 @@ export function draftPlayer(playerNum, player, originalPosition) {
         else if (originalPosition === 'DEF') targetSlot = 'DEF';
 
         if (targetSlot) {
-            assignPlayerToSlot(playerNum, player, targetSlot);
+            if (gameMode === 'multiplayer') {
+                withFirebaseSync(assignPlayerToSlot)(playerNum, player, targetSlot);
+            } else {
+                assignPlayerToSlot(playerNum, player, targetSlot);
+            }
         } else {
             console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
             alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
         }
     }
 }
+
 
 /**
  * Assigns a drafted player to a specific fantasy roster slot.
@@ -395,9 +416,12 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
     playerData[playerNum].draftedPlayers.push({ id: playerObj.id, assignedSlot: slotId });
 
     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+    
+    // This action completes a turn, so we switch the current player.
+    switchTurn();
 
     hideSlotSelectionModal();
     
     // Update layout to reflect the drafted player and switch turns
-    updateLayout(true); 
+    updateLayout(); 
 }

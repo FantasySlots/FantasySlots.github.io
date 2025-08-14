@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Slots</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <a href="index.html">
+                <img src="https://i.postimg.cc/HLVXjSLh/output-onlinepngtools.png" alt="NFL Fantasy Slots Logo" class="site-logo">
+            </a>
+            <p class="subtitle">A randomly generated 1v1 fantasy experience.</p>
+            <!-- NEW: Multiplayer Status Box -->
+            <div id="multiplayer-status-box" style="display: none;">
+                <p id="multiplayer-status-text"></p>
+                <div id="share-link-container" style="display: none;">
+                    <input type="text" id="share-link-input" readonly>
+                    <button id="copy-link-btn">Copy</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- New: Add Player 2 Button - Moved to the top -->
+        <button class="add-player2-btn" id="add-player2-btn" style="display: none;">Add Player 2</button>
+
+        <div class="players-container">
+            <!-- Player 1 Section -->
+            <div class="player-section" id="player1-section">
+                <div class="player-header">
+                    <h2 class="player-title">Player 1</h2>
+                    <button class="reset-btn" id="player1-reset-btn"><img src="https://www.svgrepo.com/download/451239/reset.svg" alt="Reset Icon"></button>
+                </div>
+                <div class="name-input-container">
+                    <input type="text" 
+                           id="player1-name" 
+                           class="name-input" 
+                           placeholder="Enter your name..."
+                           maxlength="20">
+                    <!-- New: Avatar Selection Trigger for Player 1 -->
+                    <div class="avatar-selection-area" id="player1-avatar-area">
+                        <div class="selected-avatar-preview" id="player1-avatar-preview">
+                            <img src="" alt="Selected Avatar" class="player-avatar-img" style="display:none;">
+                            <span class="avatar-placeholder">Choose Avatar</span>
+                        </div>
+                        <!-- Avatar options will now be in a modal -->
+                    </div>
+                    <button class="confirm-name-btn" id="player1-name-confirm-btn">Confirm</button>
+                </div>
+                
+                <div class="player-ready-message" id="player1-ready-message" style="display: none;"></div>
+                
+                <div class="team-display" id="player1-display" style="display: none;">
+                    <div class="team-info">
+                        <img class="team-logo" id="player1-logo" src="" alt="">
+                        <h3 class="team-name" id="player1-team-name"></h3>
+                    </div>
+                    <!-- Team Selection Buttons - moved here -->
+                    <div class="team-selection" id="player1-team">
+                        <button class="select-team-btn" id="player1-select-team-btn">
+                            <span> 🎲 Roll Your Team</span>
+                            <div class="btn-shimmer"></div>
+                        </button>
+                        <button class="auto-draft-btn" id="player1-auto-draft-btn">
+                            <span>Auto Draft Full Roster</span>
+                            <div class="btn-shimmer"></div>
+                        </button>
+                    </div>
+                    <!-- New container for content switching -->
+                    <div class="player-content-area" id="player1-content-area">
+                        <!-- inline-roster (NFL players) and fantasy-roster will be inserted here by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Animation Overlay -->
+            <div class="team-animation-overlay" id="team-animation">
+                <div class="animation-container">
+                    <img class="cycling-logo" id="cycling-logo" src="" alt="">
+                    <p class="animation-text" id="animation-text">Selecting your team...</p>
+                </div>
+            </div>
+
+            <!-- Player 2 Section -->
+            <div class="player-section" id="player2-section">
+                <div class="player-header">
+                    <h2 class="player-title">Player 2</h2>
+                    <button class="reset-btn" id="player2-reset-btn"><img src="https://www.svgrepo.com/download/451239/reset.svg" alt="Reset Icon"></button>
+                </div>
+                <div class="name-input-container">
+                    <input type="text" 
+                           id="player2-name" 
+                           class="name-input" 
+                           placeholder="Enter your name..."
+                           maxlength="20">
+                    <!-- New: Avatar Selection Trigger for Player 2 -->
+                    <div class="avatar-selection-area" id="player2-avatar-area">
+                        <div class="selected-avatar-preview" id="player2-avatar-preview">
+                            <img src="" alt="Selected Avatar" class="player-avatar-img" style="display:none;">
+                            <span class="avatar-placeholder">Choose Avatar</span>
+                        </div>
+                        <!-- Avatar options will now be in a modal -->
+                    </div>
+                    <button class="confirm-name-btn" id="player2-name-confirm-btn">Confirm</button>
+                </div>
+                
+                <div class="player-ready-message" id="player2-ready-message" style="display: none;"></div>
+
+                <div class="team-display" id="player2-display" style="display: none;">
+                    <div class="team-info">
+                        <img class="team-logo" id="player2-logo" src="" alt="">
+                        <h3 class="team-name" id="player2-team-name"></h3>
+                    </div>
+                    <!-- Team Selection Buttons - moved here -->
+                    <div class="team-selection" id="player2-team">
+                        <button class="select-team-btn" id="player2-select-team-btn">
+                            <span> 🎲 Roll Your Team</span>
+                            <div class="btn-shimmer"></div>
+                        </button>
+                        <button class="auto-draft-btn" id="player2-auto-draft-btn">
+                            <span>Auto Draft Full Roster</span>
+                            <div class="btn-shimmer"></div>
+                        </button>
+                    </div>
+                    <!-- New container for content switching -->
+                    <div class="player-content-area" id="player2-content-area">
+                        <!-- inline-roster (NFL players) and fantasy-roster will be inserted here by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW Avatar Selection Modal -->
+        <div class="avatar-selection-modal" id="avatar-selection-modal">
+            <div class="avatar-selection-modal-content">
+                <button class="close-avatar-modal">&times;</button>
+                <h2 class="modal-title">Select Your Avatar</h2>
+                <div class="avatar-options-grid" id="avatar-options-grid">
+                    <!-- Avatars will be injected here by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Roster Modal -->
+        <div class="roster-modal" id="roster-modal">
+            <div class="roster-content">
+                <button class="close-roster">&times;</button>
+                <h2 class="roster-title">
+                    <img class="modal-team-logo" id="modal-logo" src="" alt="">
+                    <span id="modal-team-name"></span> Roster
+                </h2>
+                <div class="roster-container" id="roster-container">
+                    <!-- Roster will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Slot Selection Modal -->
+        <div class="slot-selection-modal" id="slot-selection-modal">
+            <div class="slot-selection-content">
+                <h3 id="slot-selection-player-name"></h3>
+                <p>Choose a slot for this player:</p>
+                <div class="slot-options" id="slot-options-container">
+                    <!-- Buttons will be dynamically added here -->
+                </div>
+                <button class="cancel-slot-selection">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Player Stats Modal -->
+        <div class="player-stats-modal" id="player-stats-modal">
+            <div class="player-stats-content">
+                <button class="close-stats">&times;</button>
+                <div id="player-stats-details-container">
+                    <!-- Stats will be populated here by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js",
+        "firebase/database": "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js"
+      }
+    }
+    </script>
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="uiRenderer.js"></script>
+    <script type="module" src="uiModals.js"></script>
+    <script type="module" src="uiAnimations.js"></script>
+    <script type="module" src="playerState.js"></script>
+    <script type="module" src="utils.js"></script>
+    <script type="module" src="playerActions.js"></script>
+    <script type="module" src="gameFlow.js"></script>
+    <script type="module" src="game.js"></script>
+    <script type="module" src="api.js"></script>
+    <script type="module" src="data.js"></script>
+</body>
+</html>

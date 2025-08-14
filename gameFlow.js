@@ -2,6 +2,7 @@
  * gameFlow.js
  * Contains the core game logic for team selection, drafting, and player state resets.
  */
+import { gameMode, withFirebaseSync } from './game.js';
 import { gameState, playerData, isFantasyRosterFull, resetGameState, switchTurn } from './playerState.js';
 import { shuffleArray, getRandomElement } from './utils.js';
 import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
@@ -259,7 +260,12 @@ export async function autoDraft(playerNum) {
 
                 setTimeout(() => {
                     hideTeamAnimationOverlay();
-                    updateLayout(true); // Update layout and switch turns
+                    if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
+    updateLayout(false); // don’t switch locally in multiplayer
+} else {
+    updateLayout(true); // still switch in local mode
+}
+
                 }, 1500); // Show drafted player for a bit
             } else {
                  showTeamAnimationOverlay(`No draftable player found! Try again.`);
@@ -316,7 +322,14 @@ export function draftPlayer(playerNum, player, originalPosition) {
     const flexPositions = ['RB', 'WR', 'TE'];
 
     if (flexPositions.includes(originalPosition)) {
-        showSlotSelectionModal(player, playerNum, originalPosition, playerData[playerNum], assignPlayerToSlot, hideSlotSelectionModal);
+       showSlotSelectionModal(
+    player, 
+    playerNum, 
+    originalPosition, 
+    playerData[playerNum], 
+    gameMode === 'multiplayer' ? withFirebaseSync(assignPlayerToSlot) : assignPlayerToSlot, 
+    hideSlotSelectionModal
+);
     } else {
         let targetSlot;
         if (originalPosition === 'QB') targetSlot = 'QB';
@@ -399,5 +412,9 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
     hideSlotSelectionModal();
     
     // Update layout to reflect the drafted player and switch turns
-    updateLayout(true); 
+    if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
+    updateLayout(false); // no local switch in multiplayer
+} else {
+    updateLayout(true);
+}
 }

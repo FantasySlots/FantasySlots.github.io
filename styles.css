@@ -115,6 +115,10 @@ body {
     font-weight: 600;
     color: #f59e0b; /* Amber color for waiting */
     margin-bottom: 1rem;
+    transition: color 0.3s ease;
+}
+#multiplayer-status-box.opponent-connected #multiplayer-status-text {
+    color: #3b82f6; /* Blue for connected */
 }
 #multiplayer-status-box.game-ready #multiplayer-status-text {
     color: #10b981; /* Green for ready */

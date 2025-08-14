@@ -18,7 +18,7 @@ import { teams } from './data.js';
 
 // NEW: Import Firebase
 import { db } from './firebase.js';
-import { ref, onValue, set, get, update, onDisconnect } from "firebase/database";
+import { ref, onValue, set, get, update, onDisconnect, serverTimestamp } from "firebase/database";
 
 // NEW: Global variables for multiplayer
 let gameMode = 'local';
@@ -38,7 +38,8 @@ async function syncWithFirebase() {
     isSyncing = true; // Prevent onValue listener from re-triggering actions
     console.log("Syncing to Firebase:", { gameState, playerData });
     try {
-        await set(gameRef, {
+        // Use update instead of set to avoid erasing the 'players' node.
+        await update(gameRef, {
             gameState: { ...gameState },
             playerData: { ...playerData }
         });
@@ -46,7 +47,7 @@ async function syncWithFirebase() {
         console.error("Firebase sync failed:", error);
     } finally {
         // Use a short timeout to ensure the write has time to propagate before we listen again
-        setTimeout(() => { isSyncing = false; }, 100);
+        setTimeout(() => { isSyncing = false; }, 200);
     }
 }
 
@@ -112,16 +113,28 @@ function addPlayer2() {
  */
 function withFirebaseSync(actionFn) {
     return async (...args) => {
-        // In multiplayer, only allow the local player to perform actions on their turn.
-        const playerNum = args[0];
-        if (gameMode === 'multiplayer' && (localPlayerNum !== playerNum || localPlayerNum !== gameState.currentPlayer)) {
-            // Allow name confirmation regardless of turn
-            if(actionFn.name !== 'confirmName'){
-                 alert("It's not your turn!");
-                 return;
+        const playerNum = args[0]; // The player number the action is for (1 or 2)
+
+        if (gameMode === 'multiplayer') {
+            // Block actions for the other player's UI.
+            // A user should only be able to trigger actions for their own player number.
+            if (playerNum !== localPlayerNum) {
+                // This can happen if the UI isn't fully disabled, so it's a good safeguard.
+                console.warn(`Action for Player ${playerNum} blocked because you are Player ${localPlayerNum}.`);
+                return;
+            }
+
+            // For drafting actions, also check if it's the current player's turn.
+            const isDraftingAction = ['selectTeam', 'autoDraft', 'draftPlayer', 'assignPlayerToSlot'].includes(actionFn.name);
+            if (isDraftingAction && localPlayerNum !== gameState.currentPlayer) {
+                alert("It's not your turn!");
+                return;
             }
         }
+        
+        // If checks pass, execute the original action.
         await actionFn(...args);
+        // After the action modifies the local state, sync it to Firebase.
         await syncWithFirebase();
     };
 }
@@ -144,6 +157,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setupLocalGame() {
     console.log("Setting up LOCAL game.");
+    
+    // On initial load for local game, reset all game state to ensure a clean start.
+    resetPlayer(1);
+    resetPlayer(2);
+
     // Attach event listeners for player 1
     document.getElementById('player1-name-confirm-btn').addEventListener('click', () => confirmName(1));
     document.getElementById('player1-select-team-btn').addEventListener('click', () => selectTeam(1));
@@ -179,21 +197,22 @@ async function setupMultiplayerGame() {
     const gameData = snapshot.val();
     const playersNode = gameData.players || {};
 
-    if (!playersNode.player1 || playersNode.player1 === clientId) {
+    if (!playersNode.player1 || playersNode.player1.clientId === clientId) {
         localPlayerNum = 1;
         playerRef = ref(db, `games/${roomId}/players/player1`);
-        await set(playerRef, clientId);
-    } else if (!playersNode.player2 || playersNode.player2 === clientId) {
+        // Use update to avoid removing other player's presence
+        await update(ref(db, `games/${roomId}/players`), { player1: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
+    } else if (!playersNode.player2 || playersNode.player2.clientId === clientId) {
         localPlayerNum = 2;
         playerRef = ref(db, `games/${roomId}/players/player2`);
-        await set(playerRef, clientId);
+        await update(ref(db, `games/${roomId}/players`), { player2: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
     } else {
         alert("This game room is full!");
         window.location.href = 'index.html';
         return;
     }
     
-    await onDisconnect(playerRef).remove();
+    await onDisconnect(playerRef).update({ connected: false });
 
     console.log(`You are Player ${localPlayerNum}`);
     
@@ -213,22 +232,25 @@ async function setupMultiplayerGame() {
         if (remoteData) {
             console.log("Received data from Firebase:", remoteData);
             // Deep copy to avoid mutation issues
-            Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState)));
-            Object.assign(playerData, JSON.parse(JSON.stringify(remoteData.playerData)));
-            updateLayout();
+            Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
+            Object.assign(playerData, JSON.parse(JSON.stringify(remoteData.playerData || {})));
+            // NEW: Pass the players presence node to updateLayout
+            updateLayout(false, remoteData.players);
         }
     });
     
     // Wrap actions with Firebase sync logic
-    document.getElementById('player1-name-confirm-btn').addEventListener('click', withFirebaseSync(() => confirmName(1)));
-    document.getElementById('player1-select-team-btn').addEventListener('click', withFirebaseSync(selectTeam));
-    document.getElementById('player1-auto-draft-btn').addEventListener('click', withFirebaseSync(autoDraft));
-    document.getElementById('player1-reset-btn').addEventListener('click', withFirebaseSync(() => resetPlayer(1)));
+    // CRITICAL FIX: The action is for player 1, not necessarily the local player.
+    document.getElementById('player1-name-confirm-btn').addEventListener('click', () => withFirebaseSync(confirmName)(1));
+    document.getElementById('player1-select-team-btn').addEventListener('click', () => withFirebaseSync(selectTeam)(1));
+    document.getElementById('player1-auto-draft-btn').addEventListener('click', () => withFirebaseSync(autoDraft)(1));
+    document.getElementById('player1-reset-btn').addEventListener('click', () => withFirebaseSync(resetPlayer)(1));
 
-    document.getElementById('player2-name-confirm-btn').addEventListener('click', withFirebaseSync(() => confirmName(2)));
-    document.getElementById('player2-select-team-btn').addEventListener('click', withFirebaseSync(selectTeam));
-    document.getElementById('player2-auto-draft-btn').addEventListener('click', withFirebaseSync(autoDraft));
-    document.getElementById('player2-reset-btn').addEventListener('click', withFirebaseSync(() => resetPlayer(2)));
+    // CRITICAL FIX: The action is for player 2.
+    document.getElementById('player2-name-confirm-btn').addEventListener('click', () => withFirebaseSync(confirmName)(2));
+    document.getElementById('player2-select-team-btn').addEventListener('click', () => withFirebaseSync(selectTeam)(2));
+    document.getElementById('player2-auto-draft-btn').addEventListener('click', () => withFirebaseSync(autoDraft)(2));
+    document.getElementById('player2-reset-btn').addEventListener('click', () => withFirebaseSync(resetPlayer)(2));
     
     initializeCommonListeners();
 }
@@ -267,52 +289,55 @@ function initializeCommonListeners() {
     // Add click listener to avatar previews to open the avatar selection modal
     document.getElementById('player1-avatar-preview').addEventListener('click', () => {
         if (gameMode === 'multiplayer' && localPlayerNum !== 1) return;
-        showAvatarSelectionModal(1, playerData[1].avatar, AVATAR_SVGS, withFirebaseSync(selectAvatar));
+        showAvatarSelectionModal(1, playerData[1].avatar, AVATAR_SVGS, (pNum, avatarUrl) => gameMode === 'multiplayer' ? withFirebaseSync(selectAvatar)(pNum, avatarUrl) : selectAvatar(pNum, avatarUrl));
     });
     document.getElementById('player2-avatar-preview').addEventListener('click', () => {
         if (gameMode === 'multiplayer' && localPlayerNum !== 2) return;
-        showAvatarSelectionModal(2, playerData[2].avatar, AVATAR_SVGS, withFirebaseSync(selectAvatar));
+        showAvatarSelectionModal(2, playerData[2].avatar, AVATAR_SVGS, (pNum, avatarUrl) => gameMode === 'multiplayer' ? withFirebaseSync(selectAvatar)(pNum, avatarUrl) : selectAvatar(pNum, avatarUrl));
     });
 
     // Load saved data for both players and initialize playerData structure
-    [1, 2].forEach(playerNum => {
-        const savedData = localStorage.getItem(`fantasyTeam_${playerNum}`);
-        
-        // Ensure playerData structure is correctly initialized, filling in missing fields for old saves
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            playerData[playerNum] = { 
-                name: parsed.name || '', 
-                avatar: parsed.avatar || null, 
-                team: parsed.team || null, 
-                draftedPlayers: parsed.draftedPlayers || [], 
-                rosterSlots: parsed.rosterSlots || {
-                    QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null
-                },
-                isSetupStarted: parsed.isSetupStarted || false 
-            };
+    // In multiplayer, this is overwritten by Firebase, but useful for local mode.
+    if (gameMode === 'local') {
+        [1, 2].forEach(playerNum => {
+            const savedData = localStorage.getItem(`fantasyTeam_${playerNum}`);
+            
+            // Ensure playerData structure is correctly initialized, filling in missing fields for old saves
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                playerData[playerNum] = { 
+                    name: parsed.name || '', 
+                    avatar: parsed.avatar || null, 
+                    team: parsed.team || null, 
+                    draftedPlayers: parsed.draftedPlayers || [], 
+                    rosterSlots: parsed.rosterSlots || {
+                        QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null
+                    },
+                    isSetupStarted: parsed.isSetupStarted || false 
+                };
 
-            // Ensure fantasyPoints and statsData field is initialized for loaded players if not present (for old saves)
-            for (const slot in playerData[playerNum].rosterSlots) {
-                if (playerData[playerNum].rosterSlots[slot] && playerData[playerNum].rosterSlots[slot].fantasyPoints === undefined) {
-                    playerData[playerNum].rosterSlots[slot].fantasyPoints = null;
-                    playerData[playerNum].rosterSlots[slot].statsData = null;
+                // Ensure fantasyPoints and statsData field is initialized for loaded players if not present (for old saves)
+                for (const slot in playerData[playerNum].rosterSlots) {
+                    if (playerData[playerNum].rosterSlots[slot] && playerData[playerNum].rosterSlots[slot].fantasyPoints === undefined) {
+                        playerData[playerNum].rosterSlots[slot].fantasyPoints = null;
+                        playerData[playerNum].rosterSlots[slot].statsData = null;
+                    }
                 }
+            } else {
+                // If no saved data, ensure base player data is set (it's already set by default export, but explicit is good)
+                playerData[playerNum] = { 
+                    name: '', avatar: null, team: null, draftedPlayers: [], 
+                    rosterSlots: { QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null },
+                    isSetupStarted: false
+                };
             }
-        } else {
-            // If no saved data, ensure base player data is set (it's already set by default export, but explicit is good)
-            playerData[playerNum] = { 
-                name: '', avatar: null, team: null, draftedPlayers: [], 
-                rosterSlots: { QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null },
-                isSetupStarted: false
-            };
-        }
-        
-        // Populate name input field from loaded data
-        document.getElementById(`player${playerNum}-name`).value = playerData[playerNum].name;
+            
+            // Populate name input field from loaded data
+            document.getElementById(`player${playerNum}-name`).value = playerData[playerNum].name;
 
-        // Note: No direct style.display manipulation here. updateLayout will handle it.
-    });
+            // Note: No direct style.display manipulation here. updateLayout will handle it.
+        });
+    }
     
     // Call updateLayout AFTER all saved data is loaded to set initial UI state correctly
     updateLayout(); 
@@ -331,8 +356,9 @@ function getOrCreateClientId() {
  * Updates the main layout of the application (single player view vs. two-player view)
  * and the internal display of each player section (name input vs. team display, draft vs. fantasy roster).
  * @param {boolean} shouldSwitchTurn - Whether to switch the current player turn.
+ * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
-export function updateLayout(shouldSwitchTurn = false) {
+export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
     // Check game phase transition
     if (gameState.phase === 'NAME_ENTRY' && playerData[1].name && playerData[2].name) {
         setGamePhase('DRAFTING');
@@ -341,6 +367,8 @@ export function updateLayout(shouldSwitchTurn = false) {
     if (shouldSwitchTurn && gameState.phase === 'DRAFTING') {
         // In multiplayer, only the current player can switch the turn
         if (gameMode !== 'multiplayer' || localPlayerNum === gameState.currentPlayer) {
+            switchTurn();
+        } else if (gameMode === 'local') {
             switchTurn();
         }
     }
@@ -361,13 +389,21 @@ export function updateLayout(shouldSwitchTurn = false) {
     if (gameMode === 'multiplayer') {
         multiplayerStatusBox.style.display = 'block';
         const statusText = document.getElementById('multiplayer-status-text');
-        if (!playerData[1].name || !playerData[2].name) {
-            statusText.textContent = 'Waiting for opponent to join and set their name...';
-            multiplayerStatusBox.classList.remove('game-ready');
-        } else {
+        const bothPlayersConnected = playersPresence?.player1?.connected && playersPresence?.player2?.connected;
+
+        if (playerData[1].name && playerData[2].name) {
             statusText.textContent = 'Game is on! Good luck!';
             multiplayerStatusBox.classList.add('game-ready');
             document.getElementById('share-link-container').style.display = 'none';
+        } else if (bothPlayersConnected) {
+            statusText.textContent = 'Opponent connected! Set your names to begin.';
+            multiplayerStatusBox.classList.add('opponent-connected');
+            multiplayerStatusBox.classList.remove('game-ready');
+            document.getElementById('share-link-container').style.display = 'none';
+        } else {
+            statusText.textContent = 'Waiting for opponent to join...';
+            multiplayerStatusBox.classList.remove('game-ready', 'opponent-connected');
+            document.getElementById('share-link-container').style.display = 'flex';
         }
     }
 
@@ -408,8 +444,9 @@ export function updateLayout(shouldSwitchTurn = false) {
             if (gameState.phase === 'DRAFTING') {
                 // In multiplayer, also disable inputs for the non-local player
                 const isLocalPlayer = gameMode !== 'multiplayer' || playerNum === localPlayerNum;
+                const isMyTurn = playerNum === gameState.currentPlayer;
 
-                if (playerNum === gameState.currentPlayer && isLocalPlayer) {
+                if (isMyTurn && isLocalPlayer) {
                     playerSection.classList.add('active-turn');
                     playerSection.classList.remove('inactive-turn');
                 } else {

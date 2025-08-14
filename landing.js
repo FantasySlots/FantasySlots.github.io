@@ -1,5 +1,5 @@
 import { db } from './firebase.js';
-import { ref, set, push } from "firebase/database";
+import { ref, set, push, serverTimestamp } from "firebase/database";
 import { playerData, gameState } from './playerState.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ...gameState // uses the default game state
                 },
                 players: {},
-                createdAt: Date.now()
+                createdAt: serverTimestamp()
             });
 
             // Redirect to the game page with the new room ID

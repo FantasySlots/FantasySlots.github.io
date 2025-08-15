@@ -3,6 +3,153 @@
  * Handles all DOM manipulation for rendering general player sections,
  * including the draft interface and fantasy roster display.
  */
+export function updateLayout(playersPresence = {}, currentState = gameState) {
+    const phase = currentState.phase;
+    const currentPlayer = currentState.currentPlayer;
+
+    // Phase transition check for name entry
+    if (
+        phase === 'NAME_ENTRY' &&
+        playerData[1]?.name &&
+        playerData[2]?.name
+    ) {
+        setGamePhase('DRAFTING');
+    }
+
+    const playersContainer = document.querySelector('.players-container');
+    playersContainer.classList.add('two-player-view');
+    playersContainer.classList.remove('single-player-view');
+
+    document.getElementById('add-player2-btn').style.display = 'none';
+
+    // Multiplayer status UI
+    const multiplayerStatusBox = document.getElementById('multiplayer-status-box');
+    if (gameMode === 'multiplayer') {
+        multiplayerStatusBox.style.display = 'block';
+        const statusText = document.getElementById('multiplayer-status-text');
+        const bothPlayersConnected =
+            playersPresence?.player1?.connected &&
+            playersPresence?.player2?.connected;
+
+        if (playerData[1].name && playerData[2].name) {
+            statusText.textContent = 'Game is on! Good luck!';
+            multiplayerStatusBox.classList.add('game-ready');
+            document.getElementById('share-link-container').style.display = 'none';
+        } else if (bothPlayersConnected) {
+            statusText.textContent = 'Opponent connected! Set your names to begin.';
+            multiplayerStatusBox.classList.add('opponent-connected');
+            multiplayerStatusBox.classList.remove('game-ready');
+            document.getElementById('share-link-container').style.display = 'none';
+        } else {
+            statusText.textContent = 'Waiting for opponent to join...';
+            multiplayerStatusBox.classList.remove('game-ready', 'opponent-connected');
+            document.getElementById('share-link-container').style.display = 'flex';
+        }
+    }
+
+    // Update each player section
+    [1, 2].forEach(playerNum => {
+        if (!playerData[playerNum]) {
+            console.warn(`playerData for player ${playerNum} is missing. Skipping layout update.`);
+            return;
+        }
+
+        const playerSection = document.getElementById(`player${playerNum}-section`);
+        const nameInputContainer = playerSection.querySelector('.name-input-container');
+        const playerDisplayDiv = document.getElementById(`player${playerNum}-display`);
+        const playerLogoEl = document.getElementById(`player${playerNum}-logo`);
+        const playerContentArea = document.getElementById(`player${playerNum}-content-area`);
+        const isCurrentPlayerRosterFull = isFantasyRosterFull(playerNum);
+        const readyMessageEl = document.getElementById(`player${playerNum}-ready-message`);
+
+        if (phase === 'NAME_ENTRY') {
+            playerSection.classList.remove('active-turn', 'inactive-turn');
+            playerDisplayDiv.style.display = 'none';
+
+            if (playerData[playerNum].name) {
+                nameInputContainer.style.display = 'none';
+                readyMessageEl.textContent = `${playerData[playerNum].name} is ready`;
+                readyMessageEl.style.display = 'block';
+                renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
+            } else {
+                nameInputContainer.style.display = 'flex';
+                readyMessageEl.style.display = 'none';
+                renderPlayerAvatar(playerNum, `Player ${playerNum}`, null);
+            }
+        } else {
+            nameInputContainer.style.display = 'none';
+            readyMessageEl.style.display = 'none';
+            playerDisplayDiv.style.display = 'block';
+
+            renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
+
+            const isMyTurn = playerNum === currentPlayer;
+            if (isMyTurn) {
+                playerSection.classList.add('active-turn');
+                playerSection.classList.remove('inactive-turn');
+            } else {
+                playerSection.classList.add('inactive-turn');
+                playerSection.classList.remove('active-turn');
+            }
+
+            if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
+                disablePlayerControls(playerNum);
+            } else {
+                enablePlayerControls(playerNum);
+            }
+
+            if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
+                playerLogoEl.src = playerData[playerNum].avatar;
+                playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+                playerLogoEl.classList.add('is-avatar');
+                document.getElementById(`player${playerNum}-team-name`).textContent =
+                    `${playerData[playerNum].name}'s Roster`;
+            } else if (playerData[playerNum].team?.id) {
+                playerLogoEl.src = playerData[playerNum].team.logo;
+                playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+                playerLogoEl.classList.remove('is-avatar');
+                document.getElementById(`player${playerNum}-team-name`).textContent =
+                    playerData[playerNum].team.name;
+
+                if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
+                    const otherPlayerNum = playerNum === 1 ? 2 : 1;
+                    displayDraftInterface(
+                        playerNum,
+                        playerData[playerNum].team.rosterData,
+                        playerData[playerNum],
+                        playerData[otherPlayerNum],
+                        isFantasyRosterFull,
+                        isPlayerPositionUndraftable,
+                        draftPlayer
+                    );
+                } else {
+                    const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+                    inlineRosterEl.innerHTML = '';
+                }
+            } else if (playerData[playerNum].avatar) {
+                playerLogoEl.src = playerData[playerNum].avatar;
+                playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+                playerLogoEl.classList.add('is-avatar');
+                document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+            } else {
+                playerLogoEl.src = '';
+                playerLogoEl.alt = '';
+                playerLogoEl.classList.remove('is-avatar');
+                document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+            }
+
+            displayFantasyRoster(playerNum, playerData[playerNum], teams, isCurrentPlayerRosterFull, openPlayerStatsModalCaller);
+            updatePlayerContentDisplay(playerNum, playerData[playerNum], isFantasyRosterFull);
+
+            if (isCurrentPlayerRosterFull) {
+                fetchAndDisplayPlayerFantasyPoints(playerNum);
+            }
+        }
+
+        updateAvatarPreview(playerNum, playerData[playerNum].avatar);
+    });
+}
+
 
 // UI Helper: Get or create a child element with a specific class
 export function getOrCreateChild(parent, className, tagName = 'div') {

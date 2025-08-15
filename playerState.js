@@ -3,7 +3,7 @@
  * Manages the core game state related to players, their rosters, and helper functions
  * to check roster status.
  */
-import { updateLayout } from './game.js';
+import { updateLayout } from './uiRender.js';
 import { syncWithFirebase, gameMode } from './game.js';
 // NEW: Centralized game state for turn management and game phase
 export const gameState = {

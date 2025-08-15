@@ -21,7 +21,15 @@ import { db } from './firebase.js';
 import { ref, onValue, set, get, update, onDisconnect, serverTimestamp } from "firebase/database";
 
 // NEW: Global variables for multiplayer
-let gameMode = 'local';
+export let gameMode = 'local';
+export function setGameMode(mode) {
+    if (mode === 'local' || mode === 'multiplayer') {
+        gameMode = mode;
+    } else {
+        console.warn(`Invalid game mode: ${mode}`);
+    }
+}
+
 let roomId = null;
 let localPlayerNum = null;
 let gameRef = null;

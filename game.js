@@ -113,46 +113,46 @@ function addPlayer2() {
  */
 function withFirebaseSync(actionFn) {
     return async (...args) => {
-        const playerNum = args[0]; // The player number the action is for (1 or 2)
+        const playerNum = args[0]; // First arg is always the player number
+
+        console.log(`[withFirebaseSync] Action: ${actionFn.name}, Player: ${playerNum}, Current turn: ${gameState.currentPlayer}`);
 
         if (gameMode === 'multiplayer') {
-            // Block actions for the other player's UI.
-            // A user should only be able to trigger actions for their own player number.
+            // Only allow actions for the local player
             if (playerNum !== localPlayerNum) {
-                // This can happen if the UI isn't fully disabled, so it's a good safeguard.
-                console.warn(`Action for Player ${playerNum} blocked because you are Player ${localPlayerNum}.`);
+                console.warn(`[withFirebaseSync] Blocked action for Player ${playerNum} (local is Player ${localPlayerNum})`);
                 return;
             }
 
-            // For drafting actions, also check if it's the current player's turn.
+            // Block drafting if not this player's turn
             const isDraftingAction = ['selectTeam', 'autoDraft', 'draftPlayer', 'assignPlayerToSlot'].includes(actionFn.name);
             if (isDraftingAction && localPlayerNum !== gameState.currentPlayer) {
                 alert("It's not your turn!");
                 return;
             }
         }
-        
-        // If checks pass, execute the original action.
+
+        // Run the original action
         await actionFn(...args);
 
-        // NEW: After a successful draft action, switch the turn.
-        const shouldSwitchTurnAfterAction = ['assignPlayerToSlot', 'autoDraft'].includes(actionFn.name);
-       if (shouldSwitchTurnAfterAction) {
-    const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
-    if (!bothFull) {
-        
+        // Switch turns ONLY after a player is added to a roster
+        const shouldSwitchTurn = ['assignPlayerToSlot', 'autoDraft'].includes(actionFn.name);
+        if (shouldSwitchTurn) {
+            const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
+            if (!bothFull) {
+                console.log(`[withFirebaseSync] Switching turn from Player ${gameState.currentPlayer}`);
                 switchTurn();
-            
-       
-    } else {
-        setGamePhase('COMPLETE');
-    }
-}
-        
-        // After the action modifies the local state, sync it to Firebase.
+            } else {
+                console.log(`[withFirebaseSync] Both rosters full — setting phase to COMPLETE`);
+                setGamePhase('COMPLETE');
+            }
+        }
+
+        // Sync updated state to Firebase
         await syncWithFirebase();
     };
 }
+
 
 /**
  * Initializes the application on DOMContentLoaded.

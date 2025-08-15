@@ -382,7 +382,7 @@ function getOrCreateClientId() {
  * @param {boolean} shouldSwitchTurn - Whether to switch the current player turn.
  * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
-export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
+export function updateLayout(playersPresence = {}) {
     // Check game phase transition
     if (gameState.phase === 'NAME_ENTRY' && playerData[1].name && playerData[2].name) {
         setGamePhase('DRAFTING');
@@ -390,12 +390,7 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
 
     // DEPRECATED: Turn switching is now handled by withFirebaseSync after a successful action.
     // The shouldSwitchTurn parameter is kept for compatibility but is no longer used for switching turns here.
-    if (shouldSwitchTurn && gameState.phase === 'DRAFTING' && gameMode === 'local') {
-        // Only switch turn here for local games to maintain old behavior.
-        // Multiplayer turn switching is now explicit in withFirebaseSync.
-        switchTurn();
-    }
-    
+
     if (isFantasyRosterFull(1) && isFantasyRosterFull(2)) {
         setGamePhase('COMPLETE');
     }

@@ -135,10 +135,27 @@ function sanitizeForFirebase(obj) {
 }
 
 export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
+
+    // Helper to remove rosterData and other unsafe Firebase keys
+    function stripUnsafeFields(obj) {
+        if (Array.isArray(obj)) {
+            return obj.map(stripUnsafeFields);
+        } else if (obj && typeof obj === 'object') {
+            const cleanObj = {};
+            for (const [key, value] of Object.entries(obj)) {
+                if (key === 'rosterData') continue; // ❌ Do not sync ESPN roster data
+                cleanObj[key] = stripUnsafeFields(value);
+            }
+            return cleanObj;
+        }
+        return obj;
+    }
+
     return async (...args) => {
         const playerNum = args[0];
 
         if (gameMode === 'multiplayer') {
+            // Prevent actions from wrong player
             if (playerNum !== localPlayerNum) return;
 
             const isDraftingAction = [
@@ -156,6 +173,7 @@ export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
 
         await actionFn(...args);
 
+        // Handle turn switching after action if needed
         if (switchOnComplete) {
             const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
             if (bothFull) {
@@ -167,9 +185,20 @@ export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
             }
         }
 
-        await syncWithFirebase();
+        // ✅ Sync to Firebase without unsafe data
+        if (gameMode === 'multiplayer') {
+            try {
+                await update(gameRef, {
+                    playerData: stripUnsafeFields(playerData),
+                    gameState: stripUnsafeFields(gameState)
+                });
+            } catch (err) {
+                console.error("Firebase sync failed:", err);
+            }
+        }
     };
 }
+
 
 
 

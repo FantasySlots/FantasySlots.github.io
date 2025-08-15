@@ -17,7 +17,7 @@ export const playerData = {
         team: null, 
         draftedPlayers: [], 
         rosterSlots: { 
-            QB: null, RB: null, WR1: null, WR2: null, TE: null, FLEX: null, DEF: null, K: null 
+            QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null 
         },
         isSetupStarted: false // NEW: Flag to track if player's setup process has begun
     },
@@ -27,7 +27,7 @@ export const playerData = {
         team: null, 
         draftedPlayers: [], 
         rosterSlots: {
-            QB: null, RB: null, WR1: null, WR2: null, TE: null, FLEX: null, DEF: null, K: null 
+            QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null 
         },
         isSetupStarted: false // NEW: Flag to track if player's setup process has begun
     }
@@ -80,74 +80,51 @@ export function resetGameState() {
  * @returns {boolean} True if the roster is full, false otherwise.
  */
 export function isFantasyRosterFull(playerNum) {
+    // Guard clause
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
-        console.log(`Roster full check for P${playerNum}: roster data missing.`);
         return false;
     }
 
     const roster = playerData[playerNum].rosterSlots;
+
+    // Match actual slot keys used in your roster data
     const requiredSlots = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'FLEX', 'DEF', 'K'];
 
-    const result = requiredSlots.every(slot => roster[slot] && roster[slot].id);
-    console.log(`Roster full check for P${playerNum}:`, roster, '=>', result);
-    return result;
+    // Every required slot must be truthy (not null or undefined)
+    return requiredSlots.every(slot => roster[slot]);
 }
 
+
+/**
+ * Checks if a player's fantasy roster has any available slot for a given position type.
+ * @param {number} playerNum - The player number (1 or 2).
+ * @param {string} originalPosition - The player's original position (e.g., 'QB', 'RB', 'WR', 'TE', 'K', 'DEF').
+ * @returns {boolean} True if no slot is available for that position, false otherwise.
+ */
 export function isPlayerPositionUndraftable(playerNum, originalPosition) {
+    // Add a guard to prevent errors.
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
-        console.log(`Undraftable check for P${playerNum}: roster data missing`);
-        return true;
+        return true; // Assume undraftable if data is missing
     }
+    const rosterSlots = playerData[playerNum].rosterSlots;
 
-    // Create a dummy player to pass into findAvailableSlotForPlayer
-    const dummyPlayer = {
-        position: { abbreviation: originalPosition },
-        displayName: `Dummy ${originalPosition}`
-    };
-
-    const slot = findAvailableSlotForPlayer(playerNum, dummyPlayer);
-    const undraftable = !slot;
-
-    console.log(
-        `Undraftable check for P${playerNum} (${originalPosition}):`,
-        playerData[playerNum].rosterSlots,
-        `=> ${undraftable ? 'UNDRAFTABLE' : 'AVAILABLE in ' + slot}`
-    );
-
-    return undraftable;
-}
-
-
-
-
-// gameFlow.js
-export function findAvailableSlotForPlayer(playerNum, player) {
-    const roster = playerData[playerNum].rosterSlots;
-    let position = player.position?.abbreviation || player.position?.name;
-    if (position === 'PK') position = 'K';
-
-    const isSlotEmpty = slotId => {
-        const slotVal = roster[slotId];
-        return !slotVal || !slotVal.id;
-    };
-
-    if (position === 'QB' && isSlotEmpty('QB')) return 'QB';
-    if (position === 'K' && isSlotEmpty('K')) return 'K';
-    if (position === 'DEF' && isSlotEmpty('DEF')) return 'DEF';
-
-    if (position === 'RB') {
-        if (isSlotEmpty('RB')) return 'RB';
-        if (isSlotEmpty('FLEX')) return 'FLEX';
+    if (originalPosition === 'QB') {
+        return rosterSlots.QB !== null;
     }
-    if (position === 'WR') {
-        if (isSlotEmpty('WR1')) return 'WR1';
-        if (isSlotEmpty('WR2')) return 'WR2';
-        if (isSlotEmpty('FLEX')) return 'FLEX';
+    if (originalPosition === 'RB') {
+        return rosterSlots.RB !== null && rosterSlots.Flex !== null;
     }
-    if (position === 'TE') {
-        if (isSlotEmpty('TE')) return 'TE';
-        if (isSlotEmpty('FLEX')) return 'FLEX';
+    if (originalPosition === 'WR') {
+        return rosterSlots.WR1 !== null && rosterSlots.WR2 !== null && rosterSlots.Flex !== null;
     }
-
-    return null;
+    if (originalPosition === 'TE') {
+        return rosterSlots.TE !== null && rosterSlots.Flex !== null;
+    }
+    if (originalPosition === 'K') {
+        return rosterSlots.K !== null;
+    }
+    if (originalPosition === 'DEF') {
+        return rosterSlots.DEF !== null;
+    }
+    return true; 
 }

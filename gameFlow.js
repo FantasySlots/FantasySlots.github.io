@@ -291,54 +291,49 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    const otherPlayerNum = playerNum === 1 ? 2 : 1;
-
-    // Prevent drafting the same player twice by either player
-    const isAlreadyDraftedByMe = Object.values(playerData[playerNum].rosterSlots)
+    // Don't allow drafting the same player twice by same team
+    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
         .some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
-    const isAlreadyDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots)
-        .some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
-
-    if (isAlreadyDraftedByMe) {
+    if (isAlreadyInFantasyRoster) {
+        console.warn(`Player ${player.displayName} is already in Player ${playerNum}'s fantasy roster.`);
         alert(`${player.displayName} is already in your fantasy roster!`);
         return;
     }
-    if (isAlreadyDraftedByOpponent) {
-        alert(`${player.displayName} has already been drafted by ${playerData[otherPlayerNum].name}!`);
+
+    // ✅ Only block "already drafted from this team" if we're still on the *same team* as last pick
+    if (
+        playerData[playerNum].draftedPlayers.length > 0 &&
+        playerData[playerNum].team &&
+        playerData[playerNum].team.id === player.teamId // assuming ESPN data has `teamId`
+    ) {
+        console.warn(`Player ${playerNum} has already drafted a player from ${playerData[playerNum].team.name} this turn.`);
+        alert('You have already drafted a player from this team this turn. Please select a new team or auto-draft to draft another player.');
         return;
     }
 
     if (isFantasyRosterFull(playerNum)) {
+        console.warn(`Player ${playerNum}'s fantasy roster is full. Cannot draft ${player.displayName}.`);
         alert('Your fantasy roster is full! You cannot draft more players.');
         return;
     }
 
-    // ✅ Reset draftedPlayers only if the player's current team is different from the one we have stored
+    // ✅ If new team, reset draftedPlayers and set current team
     if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
         playerData[playerNum].draftedPlayers = [];
-        console.log(`Player ${playerNum}: draftedPlayers reset due to new team (${player.teamName || player.teamId}).`);
-    }
-
-    // Track this player's current NFL team
-    if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
-        playerData[playerNum].team = {
-            id: player.teamId,
-            name: player.teamName,
-            logo: player.teamLogo
-        };
+        playerData[playerNum].team = teams.find(t => t.id === player.teamId) || playerData[playerNum].team;
+        console.log(`Player ${playerNum}: draftedPlayers reset for new team (${playerData[playerNum].team?.name || 'Unknown'}) in manual draft.`);
     }
 
     const flexPositions = ['RB', 'WR', 'TE'];
-
     if (flexPositions.includes(originalPosition)) {
         showSlotSelectionModal(
-            player, 
-            playerNum, 
-            originalPosition, 
-            playerData[playerNum], 
-            gameMode === 'multiplayer' 
-                ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true }) 
-                : assignPlayerToSlot, 
+            player,
+            playerNum,
+            originalPosition,
+            playerData[playerNum],
+            gameMode === 'multiplayer'
+                ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })
+                : assignPlayerToSlot,
             hideSlotSelectionModal
         );
     } else {
@@ -354,10 +349,12 @@ export function draftPlayer(playerNum, player, originalPosition) {
                 assignPlayerToSlot(playerNum, player, targetSlot);
             }
         } else {
+            console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
             alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
         }
     }
 }
+
 
 
 /**

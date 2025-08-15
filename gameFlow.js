@@ -395,10 +395,11 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
 
     hideSlotSelectionModal();
 
+        // Always update UI locally after turn change
+    
     // Always switch turn — switchTurn will handle multiplayer sync
-    switchTurn();
-
-    // Always update UI locally after turn change
+   await switchTurn();
     updateLayout();
+
 }
 

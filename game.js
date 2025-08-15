@@ -119,33 +119,29 @@ function addPlayer2() {
  * @param {function} actionFn - The async function to execute (e.g., selectTeam).
  * @returns {function} A new function that calls the original and then syncs.
  */
-export function withFirebaseSync(actionFn) {
+export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
     return async (...args) => {
-        const playerNum = args[0]; // First arg is always the player number
-
-        console.log(`[withFirebaseSync] Action: ${actionFn.name}, Player: ${playerNum}, Current turn: ${gameState.currentPlayer}`);
+        const playerNum = args[0];
 
         if (gameMode === 'multiplayer') {
-            // Only allow actions for the local player
-            if (playerNum !== localPlayerNum) {
-                console.warn(`[withFirebaseSync] Blocked action for Player ${playerNum} (local is Player ${localPlayerNum})`);
-                return;
-            }
+            if (playerNum !== localPlayerNum) return;
 
-            // Block drafting if not this player's turn
-            const isDraftingAction = ['selectTeam', 'autoDraft', 'draftPlayer', 'assignPlayerToSlot'].includes(actionFn.name);
+            const isDraftingAction = [
+                'selectTeam',
+                'autoDraft',
+                'draftPlayer',
+                'assignPlayerToSlot'
+            ].includes(actionFn.name);
+
             if (isDraftingAction && localPlayerNum !== gameState.currentPlayer) {
                 alert("It's not your turn!");
                 return;
             }
         }
 
-        // Run the original action
         await actionFn(...args);
 
-        // Switch turns ONLY after a player is added to a roster
-        const shouldSwitchTurn = ['assignPlayerToSlot', 'autoDraft'].includes(actionFn.name);
-        if (shouldSwitchTurn) {
+        if (switchOnComplete) {
             const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
             if (!bothFull) {
                 console.log(`[withFirebaseSync] Switching turn from Player ${gameState.currentPlayer}`);
@@ -156,10 +152,10 @@ export function withFirebaseSync(actionFn) {
             }
         }
 
-        // Sync updated state to Firebase
         await syncWithFirebase();
     };
 }
+
 
 
 /**
@@ -178,31 +174,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-function setupLocalGame() {
-    console.log("Setting up LOCAL game.");
-    
-    // On initial load for local game, reset all game state to ensure a clean start.
-    resetPlayer(1);
-    resetPlayer(2);
+ffunction setupLocalGame() {
+  console.log("Setting up LOCAL game.");
 
-    // Attach event listeners for player 1
-    document.getElementById('player1-name-confirm-btn').addEventListener('click', () => confirmName(1));
-    document.getElementById('player1-select-team-btn').addEventListener('click', () => selectTeam(1));
-    document.getElementById('player1-auto-draft-btn').addEventListener('click', () => autoDraft(1));
-    document.getElementById('player1-reset-btn').addEventListener('click', () => resetPlayer(1));
+  // You have duplicate resets — keep only one pair
+  resetPlayer(1);
+  resetPlayer(2);
 
-    // Attach event listeners for player 2
-    document.getElementById('player2-name-confirm-btn').addEventListener('click', () => confirmName(2));
-    document.getElementById('player2-select-team-btn').addEventListener('click', () => selectTeam(2));
-    document.getElementById('player2-auto-draft-btn').addEventListener('click', () => autoDraft(2));
-    document.getElementById('player2-reset-btn').addEventListener('click', () => resetPlayer(2));
-    
-     // On initial load, reset all game state to ensure a clean start for the new flow.
-    resetPlayer(1);
-    resetPlayer(2);
+  // Use the wrapper even in local mode
+  document.getElementById('player1-name-confirm-btn').addEventListener('click', () => withFirebaseSync(confirmName)(1));
+  document.getElementById('player1-select-team-btn').addEventListener('click', () => withFirebaseSync(selectTeam)(1));
+  document.getElementById('player1-auto-draft-btn').addEventListener('click', () => withFirebaseSync(autoDraft)(1));
+  document.getElementById('player1-reset-btn').addEventListener('click', () => withFirebaseSync(resetPlayer)(1));
 
-    initializeCommonListeners();
-    updateLayout();
+  document.getElementById('player2-name-confirm-btn').addEventListener('click', () => withFirebaseSync(confirmName)(2));
+  document.getElementById('player2-select-team-btn').addEventListener('click', () => withFirebaseSync(selectTeam)(2));
+  document.getElementById('player2-auto-draft-btn').addEventListener('click', () => withFirebaseSync(autoDraft)(2));
+  document.getElementById('player2-reset-btn').addEventListener('click', () => withFirebaseSync(resetPlayer)(2));
+
+  initializeCommonListeners();
+  updateLayout();
 }
 
 async function setupMultiplayerGame() {
@@ -259,7 +250,7 @@ async function setupMultiplayerGame() {
             // Safely update player data using the new helper function
             updateLocalPlayerData(remoteData.playerData);
             // NEW: Pass the players presence node to updateLayout
-            updateLayout(false, remoteData.players);
+            updateLayout(remoteData.players);
         }
     });
     

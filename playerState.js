@@ -3,7 +3,7 @@
  * Manages the core game state related to players, their rosters, and helper functions
  * to check roster status.
  */
-
+import { syncWithFirebase, gameMode } from './game.js';
 // NEW: Centralized game state for turn management and game phase
 export const gameState = {
     currentPlayer: 1,
@@ -54,8 +54,12 @@ export function updateLocalPlayerData(remotePlayerData) {
 /**
  * NEW: Switches the current player turn.
  */
-export function switchTurn() {
+export async function switchTurn() {
     gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+    
+    if (gameMode === 'multiplayer') {
+        await syncWithFirebase();
+    }
 }
 
 /**

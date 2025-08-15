@@ -158,25 +158,19 @@ export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
 
         if (switchOnComplete) {
             const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
-            if (!bothFull) {
-                console.log(`[withFirebaseSync] Switching turn from Player ${gameState.currentPlayer}`);
-                switchTurn();
-            } else {
+            if (bothFull) {
                 console.log(`[withFirebaseSync] Both rosters full — setting phase to COMPLETE`);
                 setGamePhase('COMPLETE');
+            } else {
+                console.log(`[withFirebaseSync] Switching turn from Player ${gameState.currentPlayer}`);
+                switchTurn();
             }
         }
 
-        try {
-            await update(gameRef, {
-                playerData: sanitizeForFirebase(playerData),
-                gameState: sanitizeForFirebase(gameState)
-            });
-        } catch (err) {
-            console.error("Firebase sync failed:", err);
-        }
+        await syncWithFirebase();
     };
 }
+
 
 
 
@@ -397,7 +391,7 @@ function getOrCreateClientId() {
  * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
 export function updateLayout(playersPresence = {}) {
-    // ✅ Phase transition from NAME_ENTRY → DRAFTING
+    // Phase transition check for name entry
     if (
         gameState.phase === 'NAME_ENTRY' &&
         playerData[1]?.name &&
@@ -406,19 +400,13 @@ export function updateLayout(playersPresence = {}) {
         setGamePhase('DRAFTING');
     }
 
-    // ✅ Game completion check
-    if (isFantasyRosterFull(1) && isFantasyRosterFull(2)) {
-        setGamePhase('COMPLETE');
-    }
-
-    // ✅ Always force 2-player layout
     const playersContainer = document.querySelector('.players-container');
     playersContainer.classList.add('two-player-view');
     playersContainer.classList.remove('single-player-view');
 
     document.getElementById('add-player2-btn').style.display = 'none';
 
-    // ✅ Multiplayer status UI
+    // Multiplayer status UI
     const multiplayerStatusBox = document.getElementById('multiplayer-status-box');
     if (gameMode === 'multiplayer') {
         multiplayerStatusBox.style.display = 'block';
@@ -443,7 +431,7 @@ export function updateLayout(playersPresence = {}) {
         }
     }
 
-    // ✅ Update each player's UI
+    // Update each player section
     [1, 2].forEach(playerNum => {
         if (!playerData[playerNum]) {
             console.warn(`playerData for player ${playerNum} is missing. Skipping layout update.`);
@@ -458,7 +446,6 @@ export function updateLayout(playersPresence = {}) {
         const isCurrentPlayerRosterFull = isFantasyRosterFull(playerNum);
         const readyMessageEl = document.getElementById(`player${playerNum}-ready-message`);
 
-        // NAME_ENTRY phase
         if (gameState.phase === 'NAME_ENTRY') {
             playerSection.classList.remove('active-turn', 'inactive-turn');
             playerDisplayDiv.style.display = 'none';
@@ -473,16 +460,13 @@ export function updateLayout(playersPresence = {}) {
                 readyMessageEl.style.display = 'none';
                 renderPlayerAvatar(playerNum, `Player ${playerNum}`, null);
             }
-        }
-        // DRAFTING / COMPLETE phases
-        else {
+        } else {
             nameInputContainer.style.display = 'none';
             readyMessageEl.style.display = 'none';
             playerDisplayDiv.style.display = 'block';
 
             renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
 
-            // 🔹 Turn highlight + controls
             const isMyTurn = playerNum === gameState.currentPlayer;
             if (isMyTurn) {
                 playerSection.classList.add('active-turn');
@@ -492,19 +476,12 @@ export function updateLayout(playersPresence = {}) {
                 playerSection.classList.remove('active-turn');
             }
 
-            // 🔹 Control locking
-            if (gameMode === 'multiplayer') {
-                if (playerNum !== localPlayerNum) {
-                    disablePlayerControls(playerNum);
-                } else {
-                    enablePlayerControls(playerNum);
-                }
+            if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
+                disablePlayerControls(playerNum);
             } else {
-                // Local game → always allow both players to interact
                 enablePlayerControls(playerNum);
             }
 
-            // Logo + team name
             if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
                 playerLogoEl.src = playerData[playerNum].avatar;
                 playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -545,7 +522,6 @@ export function updateLayout(playersPresence = {}) {
                 document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
             }
 
-            // Always show roster
             displayFantasyRoster(playerNum, playerData[playerNum], teams, isCurrentPlayerRosterFull, openPlayerStatsModalCaller);
             updatePlayerContentDisplay(playerNum, playerData[playerNum], isFantasyRosterFull);
 
@@ -557,6 +533,7 @@ export function updateLayout(playersPresence = {}) {
         updateAvatarPreview(playerNum, playerData[playerNum].avatar);
     });
 }
+
 
 /**
  * Disables all clickable draft-related buttons for a given player.

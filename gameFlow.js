@@ -2,6 +2,7 @@
  * gameFlow.js
  * Contains the core game logic for team selection, drafting, and player state resets.
  */
+import { syncWithFirebase } from './game.js';
 import { gameMode, withFirebaseSync } from './game.js';
 import { gameState, playerData, isFantasyRosterFull, resetGameState, switchTurn } from './playerState.js';
 import { shuffleArray, getRandomElement } from './utils.js';

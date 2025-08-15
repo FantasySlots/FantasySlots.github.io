@@ -341,7 +341,7 @@ if (flexPositions.includes(originalPosition)) {
  * @param {object} playerObj - The NFL player object to assign.
  * @param {string} slotId - The fantasy roster slot ID (e.g., 'QB', 'RB', 'WR1').
  */
-export function assignPlayerToSlot(playerNum, playerObj, slotId) {
+export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
     if (playerNum !== gameState.currentPlayer) {
         console.warn(`ASSIGNMENT BLOCKED: Not Player ${playerNum}'s turn.`);
         alert("It's not your turn!");
@@ -349,42 +349,36 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
         return;
     }
 
-    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
+    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
+        .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
     if (isAlreadyInFantasyRoster) {
-        console.warn(`ASSIGNMENT BLOCKED: ${playerObj.displayName} is already in Player ${playerNum}'s fantasy roster.`);
         alert(`${playerObj.displayName} is already in your fantasy roster!`);
         hideSlotSelectionModal();
         return;
     }
 
-    // NEW: Check if the player has been drafted by the opponent.
     const otherPlayerNum = playerNum === 1 ? 2 : 1;
-    if (playerData[otherPlayerNum].name) { // Only check if opponent exists
-        const isDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
-        if (isDraftedByOpponent) {
-            alert(`${playerObj.displayName} has already been drafted by ${playerData[otherPlayerNum].name}!`);
-            hideSlotSelectionModal();
-            return;
-        }
+    const isDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots)
+        .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
+    if (isDraftedByOpponent) {
+        alert(`${playerObj.displayName} has already been drafted by ${playerData[otherPlayerNum].name}!`);
+        hideSlotSelectionModal();
+        return;
     }
 
-    // This check ensures only one player is drafted per 'team spin'
     if (playerData[playerNum].draftedPlayers.length > 0) {
-        console.warn(`ASSIGNMENT BLOCKED: Player ${playerNum} has already drafted a player from this team (length: ${playerData[playerNum].draftedPlayers.length}).`);
         alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
         hideSlotSelectionModal();
         return;
     }
 
     if (playerData[playerNum].rosterSlots[slotId]) {
-        console.warn(`ASSIGNMENT BLOCKED: The ${slotId} slot for Player ${playerNum} is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
-        alert(`The ${slotId} slot is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
+        alert(`The ${slotId} slot is already occupied.`);
         hideSlotSelectionModal();
         return;
     }
 
-    // If all checks pass, assign the player
-    console.log(`Assigning ${playerObj.displayName} to ${slotId} for Player ${playerNum}.`);
+    // Assign player
     playerData[playerNum].rosterSlots[slotId] = {
         id: playerObj.id,
         displayName: playerObj.displayName,
@@ -400,15 +394,13 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
     hideSlotSelectionModal();
-    
-    // Update layout to reflect the drafted player and switch turns
+
+    // Always switch turn after a successful draft
+    switchTurn();
+    updateLayout();
+
+    // Push state to Firebase if multiplayer
     if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
-    // No local switch — Firebase sync will handle UI updates
-    updateLayout(false);
-} else {
-    // Local games still need the turn change here
-        switchTurn();
-        updateLayout();
-     // keep turn switching in local mode only
-}
+        await syncWithFirebase();
+    }
 }

@@ -273,7 +273,7 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    // Don't allow drafting the same player twice by same team
+    // 🚫 Don't allow drafting the same player twice by the same team
     const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
         .some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
     if (isAlreadyInFantasyRoster) {
@@ -282,29 +282,40 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    // ✅ Only block "already drafted from this team" if we're still on the *same team* as last pick
+    // 🚫 Block drafting 2 players from the same team in the same turn
     if (
         playerData[playerNum].draftedPlayers.length > 0 &&
         playerData[playerNum].team &&
-        playerData[playerNum].team.id === player.teamId // assuming ESPN data has `teamId`
+        playerData[playerNum].team.id === player.teamId
     ) {
         console.warn(`Player ${playerNum} has already drafted a player from ${playerData[playerNum].team.name} this turn.`);
-        alert('You have already drafted a player from this team this turn. Please select a new team or auto-draft to draft another player.');
+        alert('You have already drafted a player from this team this turn. Please select a new team or auto-draft.');
         return;
     }
 
+    // 🚫 Full roster check
     if (isFantasyRosterFull(playerNum)) {
         console.warn(`Player ${playerNum}'s fantasy roster is full. Cannot draft ${player.displayName}.`);
         alert('Your fantasy roster is full! You cannot draft more players.');
         return;
     }
 
-    // ✅ If new team, reset draftedPlayers and set current team
+    // ✅ If new team, set it
     if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
-        playerData[playerNum].draftedPlayers = [];
         playerData[playerNum].team = teams.find(t => t.id === player.teamId) || playerData[playerNum].team;
-        console.log(`Player ${playerNum}: draftedPlayers reset for new team (${playerData[playerNum].team?.name || 'Unknown'}) in manual draft.`);
+        console.log(`Player ${playerNum}: now drafting from team (${playerData[playerNum].team?.name || 'Unknown'}) in manual draft.`);
     }
+
+    // Add to draftedPlayers for same-turn tracking
+    playerData[playerNum].draftedPlayers.push(player);
+
+    const afterDraftActions = () => {
+        // 🆕 Always clear draftedPlayers AFTER pick so turn starts fresh
+        playerData[playerNum].draftedPlayers = [];
+
+        // Force UI refresh so greying happens right away
+        updateLayout();
+    };
 
     const flexPositions = ['RB', 'WR', 'TE'];
     if (flexPositions.includes(originalPosition)) {
@@ -314,8 +325,8 @@ export function draftPlayer(playerNum, player, originalPosition) {
             originalPosition,
             playerData[playerNum],
             gameMode === 'multiplayer'
-                ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })
-                : assignPlayerToSlot,
+                ? withFirebaseSync((...args) => { assignPlayerToSlot(...args); afterDraftActions(); }, { switchOnComplete: true })
+                : (...args) => { assignPlayerToSlot(...args); afterDraftActions(); },
             hideSlotSelectionModal
         );
     } else {
@@ -326,9 +337,10 @@ export function draftPlayer(playerNum, player, originalPosition) {
 
         if (targetSlot) {
             if (gameMode === 'multiplayer') {
-                withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, player, targetSlot);
+                withFirebaseSync((...args) => { assignPlayerToSlot(...args); afterDraftActions(); }, { switchOnComplete: true })(playerNum, player, targetSlot);
             } else {
                 assignPlayerToSlot(playerNum, player, targetSlot);
+                afterDraftActions();
             }
         } else {
             console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
@@ -336,6 +348,7 @@ export function draftPlayer(playerNum, player, originalPosition) {
         }
     }
 }
+
 
 
 

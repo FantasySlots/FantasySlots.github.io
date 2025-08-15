@@ -404,6 +404,14 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
         updateLayout(false); // redraw UI immediately
         // Firebase will still sync and call updateLayout again when the other client gets the change
     } else {
+        displayFantasyRoster(
+    playerNum,
+    playerData[playerNum],
+    teams,
+    isFantasyRosterFull(playerNum),
+    openPlayerStatsModalCaller
+);
+
         switchTurn();
         updateLayout();
     }

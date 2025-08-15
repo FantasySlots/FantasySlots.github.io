@@ -146,8 +146,8 @@ export async function autoDraft(playerNum) {
                 const newHeadshots = data.athletes
                     .flatMap(pg => pg.items || [])
                     .map(p => p.headshot?.href)
-                    .filter(Boolean); // Filter out players without headshots
-                if(newHeadshots.length > 0) {
+                    .filter(Boolean);
+                if (newHeadshots.length > 0) {
                     headshotsForAnimation.push(...newHeadshots);
                 }
             }
@@ -162,24 +162,20 @@ export async function autoDraft(playerNum) {
 
     let headshotIndex = 0;
     animateInterval = setInterval(() => {
-        // If we're running out of headshots, fetch more
         if (headshotIndex >= headshotsForAnimation.length - 5) {
             fetchHeadshotsForAnimation();
         }
 
-        // If we have headshots, cycle through them. Otherwise, fallback to team logos.
         if (headshotsForAnimation.length > 0) {
             const currentHeadshot = headshotsForAnimation[headshotIndex % headshotsForAnimation.length];
             showTeamAnimationOverlay('Searching for a player...', currentHeadshot, false);
             headshotIndex++;
         } else {
-            // Fallback to team logos if initial fetch fails or yields no headshots
             const currentTeamLogo = teams[animationTeamIndex % teams.length].logo;
             showTeamAnimationOverlay('Searching for a player...', currentTeamLogo, false);
             animationTeamIndex++;
         }
     }, 150);
-
 
     setTimeout(async () => {
         clearInterval(animateInterval);
@@ -193,7 +189,6 @@ export async function autoDraft(playerNum) {
             const opponentRosterIds = new Set(Object.values(playerData[otherPlayerNum].rosterSlots).filter(p => p).map(p => p.id));
             const ownRosterIds = new Set(Object.values(playerData[playerNum].rosterSlots).filter(p => p).map(p => p.id));
 
-            // To avoid an infinite loop if no player is available. Set a max attempts.
             const maxAttempts = teams.length * 2;
             let attempts = 0;
 
@@ -208,6 +203,8 @@ export async function autoDraft(playerNum) {
                 if (!data.athletes) continue;
 
                 let teamPlayers = data.athletes.flatMap(positionGroup => positionGroup.items || []);
+
+                // Add defense as a "player"
                 const defPlayer = {
                     id: `DEF-${randomTeam.id}`,
                     displayName: randomTeam.name,
@@ -219,7 +216,6 @@ export async function autoDraft(playerNum) {
                 shuffleArray(teamPlayers);
 
                 for (const player of teamPlayers) {
-                    // Normalize position for PK
                     if (player.position?.abbreviation === 'PK') player.position.abbreviation = 'K';
                     
                     const isDrafted = opponentRosterIds.has(player.id) || ownRosterIds.has(player.id);
@@ -229,54 +225,35 @@ export async function autoDraft(playerNum) {
                     if (availableSlot) {
                         chosenPlayer = player;
                         draftedPlayer = true;
-                        break; // Found a player
+                        break;
                     }
                 }
             }
 
             if (chosenPlayer && availableSlot) {
-                 // Determine if the headshot is an avatar or a real photo
-                 const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
-                 const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
-                 showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
-                
-                // Assign player to slot
-                playerData[playerNum].rosterSlots[availableSlot] = {
-                    id: chosenPlayer.id,
-                    displayName: chosenPlayer.displayName,
-                    originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
-                    assignedSlot: availableSlot,
-                    headshot: chosenPlayer.headshot,
-                    fantasyPoints: null,
-                    statsData: null
-                };
-                
-                // NEW: Ensure team and draftedPlayers are nullified after auto-draft
-                // This signals that the next turn requires a new "Roll Team" or another auto-draft.
-                playerData[playerNum].team = null;
-                playerData[playerNum].draftedPlayers = [];
+                // Ensure originalPosition is set for assignPlayerToSlot
+                if (!chosenPlayer.originalPosition) {
+                    chosenPlayer.originalPosition = chosenPlayer.position?.abbreviation || chosenPlayer.position?.name;
+                }
 
-                localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+                const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
+                const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
+                showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
 
-                setTimeout(() => {
+                setTimeout(async () => {
                     hideTeamAnimationOverlay();
+
                     if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
-    // No local switch — Firebase sync will handle UI updates
-    updateLayout(false);
-} else {
-    // Local games still need the turn change here
-    updateLayout(true);
-    switchTurn(); // keep turn switching in local mode only
-}
-
-
-                }, 1500); // Show drafted player for a bit
+                        await withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, chosenPlayer, availableSlot);
+                    } else {
+                        assignPlayerToSlot(playerNum, chosenPlayer, availableSlot);
+                    }
+                }, 1500);
             } else {
-                 showTeamAnimationOverlay(`No draftable player found! Try again.`);
+                showTeamAnimationOverlay(`No draftable player found! Try again.`);
                 setTimeout(() => {
                     hideTeamAnimationOverlay();
-                    // Don't switch turns if failed
-                    updateLayout(false); 
+                    updateLayout(false);
                 }, 1500);
             }
 
@@ -285,11 +262,13 @@ export async function autoDraft(playerNum) {
             showTeamAnimationOverlay('Auto-draft failed!');
             setTimeout(() => {
                 hideTeamAnimationOverlay();
-                updateLayout(false); // Do not switch turn on error
+                updateLayout(false);
             }, 1500);
         }
-    }, animationDuration - 1500); // Start searching before visual animation ends
+    }, animationDuration - 1500);
 }
+
+
 
 /**
  * Initiates the drafting process for a selected player.
@@ -325,28 +304,35 @@ export function draftPlayer(playerNum, player, originalPosition) {
 
     const flexPositions = ['RB', 'WR', 'TE'];
 
-    if (flexPositions.includes(originalPosition)) {
-       showSlotSelectionModal(
-    player, 
-    playerNum, 
-    originalPosition, 
-    playerData[playerNum], 
-    gameMode === 'multiplayer' ? withFirebaseSync(assignPlayerToSlot) : assignPlayerToSlot, 
-    hideSlotSelectionModal
-);
-    } else {
-        let targetSlot;
-        if (originalPosition === 'QB') targetSlot = 'QB';
-        else if (originalPosition === 'K') targetSlot = 'K';
-        else if (originalPosition === 'DEF') targetSlot = 'DEF';
+if (flexPositions.includes(originalPosition)) {
+    showSlotSelectionModal(
+        player, 
+        playerNum, 
+        originalPosition, 
+        playerData[playerNum], 
+        gameMode === 'multiplayer' 
+            ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true }) 
+            : assignPlayerToSlot, 
+        hideSlotSelectionModal
+    );
+} else {
+    let targetSlot;
+    if (originalPosition === 'QB') targetSlot = 'QB';
+    else if (originalPosition === 'K') targetSlot = 'K';
+    else if (originalPosition === 'DEF') targetSlot = 'DEF';
 
-        if (targetSlot) {
-            assignPlayerToSlot(playerNum, player, targetSlot);
+    if (targetSlot) {
+        if (gameMode === 'multiplayer') {
+            withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, player, targetSlot);
         } else {
-            console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
-            alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
+            assignPlayerToSlot(playerNum, player, targetSlot);
         }
+    } else {
+        console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
+        alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
     }
+}
+
 }
 
 /**
@@ -421,7 +407,8 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
     updateLayout(false);
 } else {
     // Local games still need the turn change here
-    updateLayout(true);
-    switchTurn(); // keep turn switching in local mode only
+        switchTurn();
+        updateLayout();
+     // keep turn switching in local mode only
 }
 }

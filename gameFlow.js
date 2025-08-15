@@ -94,26 +94,32 @@ function findAvailableSlotForPlayer(playerNum, player) {
     let position = player.position?.abbreviation || player.position?.name;
     if (position === 'PK') position = 'K';
 
-    if (position === 'QB' && !roster.QB) return 'QB';
-    if (position === 'K' && !roster.K) return 'K';
-    if (position === 'DEF' && !roster.DEF) return 'DEF';
-    
+    const isSlotEmpty = slotId => {
+        const slotVal = roster[slotId];
+        return !slotVal || !slotVal.id;
+    };
+
+    if (position === 'QB' && isSlotEmpty('QB')) return 'QB';
+    if (position === 'K' && isSlotEmpty('K')) return 'K';
+    if (position === 'DEF' && isSlotEmpty('DEF')) return 'DEF';
+
     if (position === 'RB') {
-        if (!roster.RB) return 'RB';
-        if (!roster.Flex) return 'Flex';
+        if (isSlotEmpty('RB')) return 'RB';
+        if (isSlotEmpty('FLEX')) return 'FLEX';
     }
     if (position === 'WR') {
-        if (!roster.WR1) return 'WR1';
-        if (!roster.WR2) return 'WR2';
-        if (!roster.Flex) return 'Flex';
+        if (isSlotEmpty('WR1')) return 'WR1';
+        if (isSlotEmpty('WR2')) return 'WR2';
+        if (isSlotEmpty('FLEX')) return 'FLEX';
     }
     if (position === 'TE') {
-        if (!roster.TE) return 'TE';
-        if (!roster.Flex) return 'Flex';
+        if (isSlotEmpty('TE')) return 'TE';
+        if (isSlotEmpty('FLEX')) return 'FLEX';
     }
-    
+
     return null;
 }
+
 
 /**
  * Handles the auto-drafting process for a player.

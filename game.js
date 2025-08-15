@@ -43,10 +43,14 @@ let isSyncing = false; // Flag to prevent feedback loops
 export async function syncWithFirebase() {
     if (gameMode !== 'multiplayer' || !gameRef) return;
     
-    isSyncing = true; // Prevent onValue listener from re-triggering actions
-    console.log("Syncing to Firebase:", { gameState, playerData });
+    isSyncing = true;
+    console.log("[SYNC PUSH] Sending to Firebase:", {
+        currentPlayer: gameState.currentPlayer,
+        gameState: { ...gameState },
+        playerData: JSON.parse(JSON.stringify(playerData))
+    });
+
     try {
-        // Use update instead of set to avoid erasing the 'players' node.
         await update(gameRef, {
             gameState: { ...gameState },
             playerData: { ...playerData }
@@ -54,8 +58,10 @@ export async function syncWithFirebase() {
     } catch (error) {
         console.error("Firebase sync failed:", error);
     } finally {
-        // Use a short timeout to ensure the write has time to propagate before we listen again
-        setTimeout(() => { isSyncing = false; }, 200);
+        setTimeout(() => { 
+            isSyncing = false; 
+            console.log("[SYNC PUSH] isSyncing reset to false");
+        }, 200);
     }
 }
 
@@ -248,19 +254,24 @@ async function setupMultiplayerGame() {
         document.getElementById('copy-link-btn').textContent = 'Copied!';
     });
 
-    onValue(gameRef, (snapshot) => {
-        if (isSyncing) return; // Ignore updates that we initiated
-        const remoteData = snapshot.val();
-        if (remoteData) {
-            console.log("Received data from Firebase:", remoteData);
-            // Deep copy to avoid mutation issues
-            Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
-            // Safely update player data using the new helper function
-            updateLocalPlayerData(remoteData.playerData);
-            // NEW: Pass the players presence node to updateLayout
-            updateLayout(remoteData.players);
-        }
+   onValue(gameRef, (snapshot) => {
+    if (isSyncing) {
+        console.log("[SYNC RECEIVE] Ignored because isSyncing=true");
+        return;
+    }
+    const remoteData = snapshot.val();
+    console.log("[SYNC RECEIVE] Data from Firebase:", {
+        currentPlayer: remoteData?.gameState?.currentPlayer,
+        gameState: remoteData?.gameState,
+        playerData: remoteData?.playerData
     });
+
+    if (remoteData) {
+        Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
+        updateLocalPlayerData(remoteData.playerData);
+        updateLayout(remoteData.players);
+    }
+});
     
     // Wrap actions with Firebase sync logic
     // CRITICAL FIX: The action is for player 1, not necessarily the local player.

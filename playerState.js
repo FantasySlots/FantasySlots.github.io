@@ -95,40 +95,43 @@ export function isFantasyRosterFull(playerNum) {
 
 export function isPlayerPositionUndraftable(playerNum, originalPosition) {
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
-        console.log(`Undraftable check for P${playerNum} (${originalPosition}): roster data missing.`);
-        return true;
+        return true; // Assume undraftable if data is missing
     }
 
     const roster = playerData[playerNum].rosterSlots;
-    const hasPlayer = slotId => roster[slotId] && roster[slotId].id;
+    const pos = originalPosition?.toUpperCase();
 
-    let result;
-    switch (originalPosition) {
+    // Debug logging
+    console.log(`Undraftable check for P${playerNum} (${pos}):`, JSON.parse(JSON.stringify(roster)));
+
+    switch (pos) {
         case 'QB':
-            result = hasPlayer('QB');
-            break;
-        case 'RB':
-            result = hasPlayer('RB') && hasPlayer('FLEX');
-            break;
-        case 'WR':
-            result = hasPlayer('WR1') && hasPlayer('WR2') && hasPlayer('FLEX');
-            break;
-        case 'TE':
-            result = hasPlayer('TE') && hasPlayer('FLEX');
-            break;
-        case 'K':
-            result = hasPlayer('K');
-            break;
-        case 'DEF':
-            result = hasPlayer('DEF');
-            break;
-        default:
-            result = true;
-    }
+            return roster.QB !== null;
 
-    console.log(`Undraftable check for P${playerNum} (${originalPosition}):`, roster, '=>', result);
-    return result;
+        case 'RB':
+            // RB is undraftable only if RB slot is filled AND FLEX is filled
+            return roster.RB !== null && roster.FLEX !== null;
+
+        case 'WR':
+            // WR is undraftable only if WR1, WR2, and FLEX are all filled
+            return roster.WR1 !== null && roster.WR2 !== null && roster.FLEX !== null;
+
+        case 'TE':
+            // TE is undraftable only if TE and FLEX are filled
+            return roster.TE !== null && roster.FLEX !== null;
+
+        case 'K':
+            return roster.K !== null;
+
+        case 'DEF':
+            return roster.DEF !== null;
+
+        default:
+            console.warn(`Unknown position "${originalPosition}" in undraftable check.`);
+            return true;
+    }
 }
+
 
 export function findAvailableSlotForPlayer(playerNum, player) {
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {

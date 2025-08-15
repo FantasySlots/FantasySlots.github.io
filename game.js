@@ -119,6 +119,21 @@ function addPlayer2() {
  * @param {function} actionFn - The async function to execute (e.g., selectTeam).
  * @returns {function} A new function that calls the original and then syncs.
  */
+function sanitizeForFirebase(obj) {
+    if (Array.isArray(obj)) {
+        return obj.map(sanitizeForFirebase);
+    } else if (obj && typeof obj === 'object') {
+        const cleanObj = {};
+        for (const [key, value] of Object.entries(obj)) {
+            // Skip illegal keys for Firebase
+            if (/[\.\#\$\[\]\/]/.test(key)) continue;
+            cleanObj[key] = sanitizeForFirebase(value);
+        }
+        return cleanObj;
+    }
+    return obj;
+}
+
 export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
     return async (...args) => {
         const playerNum = args[0];
@@ -152,9 +167,17 @@ export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
             }
         }
 
-        await syncWithFirebase();
+        try {
+            await update(gameRef, {
+                playerData: sanitizeForFirebase(playerData),
+                gameState: sanitizeForFirebase(gameState)
+            });
+        } catch (err) {
+            console.error("Firebase sync failed:", err);
+        }
     };
 }
+
 
 
 

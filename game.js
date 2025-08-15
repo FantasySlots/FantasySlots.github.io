@@ -1,10 +1,10 @@
-/**
+e/**
  * game.js
  * Contains the core game logic, state management, and orchestration of UI and API interactions.
  */
 
 // Import from new modular files
-import { updateLayout } from './uiRender.js';
+import { updateLayout } from './uiRenderer.js';
 import { gameState, playerData, isFantasyRosterFull, isPlayerPositionUndraftable, switchTurn, setGamePhase, updateLocalPlayerData } from './playerState.js';
 import { getOrCreateChild, updatePlayerContentDisplay, displayDraftInterface, displayFantasyRoster, renderPlayerAvatar } from './uiRenderer.js';
 import { showSlotSelectionModal, hideSlotSelectionModal, hideRosterModal, showPlayerStatsModal, hidePlayerStatsModal, renderPlayerStatsInModal, showAvatarSelectionModal, hideAvatarSelectionModal } from './uiModals.js';

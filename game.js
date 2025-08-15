@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-ffunction setupLocalGame() {
+function setupLocalGame() {
   console.log("Setting up LOCAL game.");
 
   // You have duplicate resets — keep only one pair

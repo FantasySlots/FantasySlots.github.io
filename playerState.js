@@ -94,43 +94,28 @@ export function isFantasyRosterFull(playerNum) {
 }
 
 export function isPlayerPositionUndraftable(playerNum, originalPosition) {
-    if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
-        return true; // Assume undraftable if data is missing
-    }
-
-    const roster = playerData[playerNum].rosterSlots;
-    const pos = originalPosition?.toUpperCase();
-
-    // Debug logging
-    console.log(`Undraftable check for P${playerNum} (${pos}):`, JSON.parse(JSON.stringify(roster)));
+    const roster = playerData[playerNum]?.rosterSlots || {};
+    let pos = originalPosition?.toUpperCase();
+    if (pos === 'PK') pos = 'K';
 
     switch (pos) {
         case 'QB':
-            return roster.QB !== null;
-
+            return !!roster.QB;
         case 'RB':
-            // RB is undraftable only if RB slot is filled AND FLEX is filled
-            return roster.RB !== null && roster.FLEX !== null;
-
+            return !!roster.RB && !!roster.FLEX;
         case 'WR':
-            // WR is undraftable only if WR1, WR2, and FLEX are all filled
-            return roster.WR1 !== null && roster.WR2 !== null && roster.FLEX !== null;
-
+            return !!roster.WR1 && !!roster.WR2 && !!roster.FLEX;
         case 'TE':
-            // TE is undraftable only if TE and FLEX are filled
-            return roster.TE !== null && roster.FLEX !== null;
-
+            return !!roster.TE && !!roster.FLEX;
         case 'K':
-            return roster.K !== null;
-
+            return !!roster.K;
         case 'DEF':
-            return roster.DEF !== null;
-
+            return !!roster.DEF;
         default:
-            console.warn(`Unknown position "${originalPosition}" in undraftable check.`);
             return true;
     }
 }
+
 
 
 export function findAvailableSlotForPlayer(playerNum, player) {

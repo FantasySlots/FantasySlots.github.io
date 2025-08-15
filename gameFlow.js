@@ -186,84 +186,105 @@ export async function autoDraft(playerNum) {
         }
     }, 150);
 
-   setTimeout(async () => {
-    clearInterval(animateInterval);
+    setTimeout(async () => {
+        clearInterval(animateInterval);
 
-    try {
-        const otherPlayerNum = playerNum === 1 ? 2 : 1;
-        const opponentRosterIds = new Set(Object.values(playerData[otherPlayerNum].rosterSlots).filter(p => p).map(p => p.id));
-        const ownRosterIds = new Set(Object.values(playerData[playerNum].rosterSlots).filter(p => p).map(p => p.id));
+        try {
+            let draftedPlayer = null;
+            let chosenPlayer = null;
+            let availableSlot = null;
+            
+            const otherPlayerNum = playerNum === 1 ? 2 : 1;
+            const opponentRosterIds = new Set(Object.values(playerData[otherPlayerNum].rosterSlots).filter(p => p).map(p => p.id));
+            const ownRosterIds = new Set(Object.values(playerData[playerNum].rosterSlots).filter(p => p).map(p => p.id));
 
-        const availablePlayers = [];
+            const maxAttempts = teams.length * 2;
+            let attempts = 0;
 
-        // Collect all eligible players from all teams
-        for (const team of teams) {
-            const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`);
-            const data = await response.json();
-            if (!data.athletes) continue;
+            while (!draftedPlayer && attempts < maxAttempts) {
+                attempts++;
+                
+                const randomTeam = getRandomElement(teams);
+                
+                const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
+                const data = await response.json();
 
-            let teamPlayers = data.athletes.flatMap(pg => pg.items || []);
+                if (!data.athletes) continue;
 
-            // Add defense manually
-            teamPlayers.push({
-                id: `DEF-${team.id}`,
-                displayName: team.name,
-                position: { name: 'Defense', abbreviation: 'DEF' },
-                headshot: { href: team.logo }
-            });
+                let teamPlayers = data.athletes.flatMap(positionGroup => positionGroup.items || []);
 
-            for (const player of teamPlayers) {
-                if (player.position?.abbreviation === 'PK') player.position.abbreviation = 'K';
-                const isDrafted = opponentRosterIds.has(player.id) || ownRosterIds.has(player.id);
-                if (isDrafted) continue;
+                // Add defense as a "player"
+                const defPlayer = {
+                    id: `DEF-${randomTeam.id}`,
+                    displayName: randomTeam.name,
+                    position: { name: 'Defense', abbreviation: 'DEF' },
+                    headshot: { href: randomTeam.logo }
+                };
+                teamPlayers.push(defPlayer);
 
-                const slot = findAvailableSlotForPlayer(playerNum, player);
-                if (slot) {
-                    availablePlayers.push({ player, slot, team });
+                shuffleArray(teamPlayers);
+
+                for (const player of teamPlayers) {
+                    if (player.position?.abbreviation === 'PK') player.position.abbreviation = 'K';
+                    
+                    const isDrafted = opponentRosterIds.has(player.id) || ownRosterIds.has(player.id);
+                    if (isDrafted) continue;
+
+                    availableSlot = findAvailableSlotForPlayer(playerNum, player);
+                    if (availableSlot) {
+                        chosenPlayer = player;
+                        draftedPlayer = true;
+
+                        // ✅ Reset draftedPlayers only if from a different team
+                        if (!playerData[playerNum].team || playerData[playerNum].team.id !== randomTeam.id) {
+                            playerData[playerNum].draftedPlayers = [];
+                            console.log(`Player ${playerNum}: draftedPlayers reset due to new team selection (${randomTeam.name}) in auto-draft.`);
+                        }
+
+                        playerData[playerNum].team = randomTeam; // set current team
+                        break;
+                    }
                 }
             }
-        }
 
-        if (availablePlayers.length > 0) {
-            const { player, slot, team } = getRandomElement(availablePlayers);
+            if (chosenPlayer && availableSlot) {
+                if (!chosenPlayer.originalPosition) {
+                    chosenPlayer.originalPosition = chosenPlayer.position?.abbreviation || chosenPlayer.position?.name;
+                }
 
-            playerData[playerNum].draftedPlayers = []; // Ignore team restriction for auto-draft
-            playerData[playerNum].team = team;
+                const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
+                const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
+                showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
 
-            if (!player.originalPosition) {
-                player.originalPosition = player.position?.abbreviation || player.position?.name;
+                setTimeout(async () => {
+                    hideTeamAnimationOverlay();
+
+                    if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
+                        await withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, chosenPlayer, availableSlot);
+                    } else {
+                        assignPlayerToSlot(playerNum, chosenPlayer, availableSlot);
+                        updateLayout(); // ✅ Force grey-out after local auto draft
+                    }
+                }, 1500);
+            } else {
+                showTeamAnimationOverlay(`No draftable player found! Try again.`);
+                setTimeout(() => {
+                    hideTeamAnimationOverlay();
+                    updateLayout(false);
+                }, 1500);
             }
 
-            const headshotIsAvatar = !player.headshot?.href || player.originalPosition === 'DEF';
-            const headshotSrc = player.headshot?.href || playerData[playerNum].avatar;
-            showTeamAnimationOverlay(`Drafted: ${player.displayName}`, headshotSrc, headshotIsAvatar);
-
-            setTimeout(async () => {
-                hideTeamAnimationOverlay();
-                if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
-                    await withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, player, slot);
-                } else {
-                    assignPlayerToSlot(playerNum, player, slot);
-                }
-            }, 1500);
-        } else {
-            showTeamAnimationOverlay(`No draftable player found! Try again.`);
+        } catch (error) {
+            console.error('Error during auto-draft:', error);
+            showTeamAnimationOverlay('Auto-draft failed!');
             setTimeout(() => {
                 hideTeamAnimationOverlay();
                 updateLayout(false);
             }, 1500);
         }
-
-    } catch (error) {
-        console.error('Error during auto-draft:', error);
-        showTeamAnimationOverlay('Auto-draft failed!');
-        setTimeout(() => {
-            hideTeamAnimationOverlay();
-            updateLayout(false);
-        }, 1500);
-    }
-}, animationDuration - 1500);
+    }, animationDuration - 1500);
 }
+
 
 /**
  * Initiates the drafting process for a selected player.

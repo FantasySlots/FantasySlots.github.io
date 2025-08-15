@@ -291,6 +291,7 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
+    // Don't allow drafting the same player twice by same team
     const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
         .some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
     if (isAlreadyInFantasyRoster) {
@@ -299,10 +300,14 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    // This check ensures only one player is drafted per 'team spin'
-    if (playerData[playerNum].draftedPlayers.length > 0) {
-        console.warn(`Player ${playerNum} has already drafted a player from this team. draftedPlayers.length: ${playerData[playerNum].draftedPlayers.length}`);
-        alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
+    // ✅ Only block "already drafted from this team" if we're still on the *same team* as last pick
+    if (
+        playerData[playerNum].draftedPlayers.length > 0 &&
+        playerData[playerNum].team &&
+        playerData[playerNum].team.id === player.teamId // assuming ESPN data has `teamId`
+    ) {
+        console.warn(`Player ${playerNum} has already drafted a player from ${playerData[playerNum].team.name} this turn.`);
+        alert('You have already drafted a player from this team this turn. Please select a new team or auto-draft to draft another player.');
         return;
     }
 
@@ -312,8 +317,14 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    const flexPositions = ['RB', 'WR', 'TE'];
+    // ✅ If new team, reset draftedPlayers and set current team
+    if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
+        playerData[playerNum].draftedPlayers = [];
+        playerData[playerNum].team = teams.find(t => t.id === player.teamId) || playerData[playerNum].team;
+        console.log(`Player ${playerNum}: draftedPlayers reset for new team (${playerData[playerNum].team?.name || 'Unknown'}) in manual draft.`);
+    }
 
+    const flexPositions = ['RB', 'WR', 'TE'];
     if (flexPositions.includes(originalPosition)) {
         showSlotSelectionModal(
             player,

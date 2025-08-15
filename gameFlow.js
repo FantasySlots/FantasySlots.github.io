@@ -9,6 +9,8 @@ import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
 import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';
 import { teams } from './data.js';
 import { updateLayout } from './game.js';
+import { findAvailableSlotForPlayer } from './playerState.js';
+
 
 /**
  * Handles the process of selecting a random NFL team.
@@ -89,36 +91,9 @@ export async function selectTeam(playerNum) {
  * @param {object} player - The NFL player object.
  * @returns {string|null} The slot ID if available, otherwise null.
  */
-function findAvailableSlotForPlayer(playerNum, player) {
-    const roster = playerData[playerNum].rosterSlots;
-    let position = player.position?.abbreviation || player.position?.name;
-    if (position === 'PK') position = 'K';
 
-    const isSlotEmpty = slotId => {
-        const slotVal = roster[slotId];
-        return !slotVal || !slotVal.id;
-    };
 
-    if (position === 'QB' && isSlotEmpty('QB')) return 'QB';
-    if (position === 'K' && isSlotEmpty('K')) return 'K';
-    if (position === 'DEF' && isSlotEmpty('DEF')) return 'DEF';
 
-    if (position === 'RB') {
-        if (isSlotEmpty('RB')) return 'RB';
-        if (isSlotEmpty('FLEX')) return 'FLEX';
-    }
-    if (position === 'WR') {
-        if (isSlotEmpty('WR1')) return 'WR1';
-        if (isSlotEmpty('WR2')) return 'WR2';
-        if (isSlotEmpty('FLEX')) return 'FLEX';
-    }
-    if (position === 'TE') {
-        if (isSlotEmpty('TE')) return 'TE';
-        if (isSlotEmpty('FLEX')) return 'FLEX';
-    }
-
-    return null;
-}
 
 
 /**

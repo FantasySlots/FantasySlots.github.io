@@ -121,7 +121,7 @@ export function isPlayerPositionUndraftable(playerNum, originalPosition) {
 
 
 // gameFlow.js
-function findAvailableSlotForPlayer(playerNum, player) {
+export function findAvailableSlotForPlayer(playerNum, player) {
     const roster = playerData[playerNum].rosterSlots;
     let position = player.position?.abbreviation || player.position?.name;
     if (position === 'PK') position = 'K';

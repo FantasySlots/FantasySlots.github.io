@@ -344,12 +344,12 @@ if (flexPositions.includes(originalPosition)) {
  */
 export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
     if (playerNum !== gameState.currentPlayer) {
-        console.warn(`ASSIGNMENT BLOCKED: Not Player ${playerNum}'s turn.`);
         alert("It's not your turn!");
         hideSlotSelectionModal();
         return;
     }
 
+    // Block duplicate in same roster
     const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
         .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
     if (isAlreadyInFantasyRoster) {
@@ -358,6 +358,7 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         return;
     }
 
+    // Block duplicate in opponent's roster
     const otherPlayerNum = playerNum === 1 ? 2 : 1;
     const isDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots)
         .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
@@ -367,19 +368,21 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         return;
     }
 
+    // One per team rule
     if (playerData[playerNum].draftedPlayers.length > 0) {
-        alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
+        alert('You have already drafted a player from this team. Please select a new team or auto-draft.');
         hideSlotSelectionModal();
         return;
     }
 
+    // Slot already occupied
     if (playerData[playerNum].rosterSlots[slotId]) {
         alert(`The ${slotId} slot is already occupied.`);
         hideSlotSelectionModal();
         return;
     }
 
-    // Assign player
+    // Assign player to slot
     playerData[playerNum].rosterSlots[slotId] = {
         id: playerObj.id,
         displayName: playerObj.displayName,
@@ -389,19 +392,16 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         fantasyPoints: null,
         statsData: null
     };
-
     playerData[playerNum].draftedPlayers.push({ id: playerObj.id, assignedSlot: slotId });
 
     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
     hideSlotSelectionModal();
 
-    // Always switch turn after a successful draft
+    // Always switch turn — switchTurn will handle multiplayer sync
     switchTurn();
-    updateLayout();
 
-    // Push state to Firebase if multiplayer
-    if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
-        await syncWithFirebase();
-    }
+    // Always update UI locally after turn change
+    updateLayout();
 }
+

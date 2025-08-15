@@ -398,12 +398,16 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
         return;
     }
 
-    if (playerData[playerNum].rosterSlots[slotId]) {
-        console.warn(`ASSIGNMENT BLOCKED: The ${slotId} slot for Player ${playerNum} is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
-        alert(`The ${slotId} slot is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
-        hideSlotSelectionModal();
-        return;
-    }
+   if (
+    playerData[playerNum].rosterSlots[slotId] &&
+    playerData[playerNum].rosterSlots[slotId].id
+) {
+    console.warn(`ASSIGNMENT BLOCKED: The ${slotId} slot for Player ${playerNum} is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
+    alert(`The ${slotId} slot is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
+    hideSlotSelectionModal();
+    return;
+}
+
 
     // If all checks pass, assign the player
     console.log(`Assigning ${playerObj.displayName} to ${slotId} for Player ${playerNum}.`);

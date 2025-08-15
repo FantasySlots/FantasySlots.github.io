@@ -1,4 +1,4 @@
-e/**
+/**
  * game.js
  * Contains the core game logic, state management, and orchestration of UI and API interactions.
  */

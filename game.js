@@ -119,7 +119,7 @@ function addPlayer2() {
  * @param {function} actionFn - The async function to execute (e.g., selectTeam).
  * @returns {function} A new function that calls the original and then syncs.
  */
-function withFirebaseSync(actionFn) {
+export function withFirebaseSync(actionFn) {
     return async (...args) => {
         const playerNum = args[0]; // First arg is always the player number
 

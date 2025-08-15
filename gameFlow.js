@@ -263,7 +263,7 @@ export async function autoDraft(playerNum) {
         }, 1500);
     }
 }, animationDuration - 1500);
-
+}
 
 /**
  * Initiates the drafting process for a selected player.

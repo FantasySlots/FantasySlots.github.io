@@ -384,9 +384,14 @@ function getOrCreateClientId() {
  */
 export function updateLayout(playersPresence = {}) {
     // Check game phase transition
-    if (gameState.phase === 'NAME_ENTRY' && playerData[1].name && playerData[2].name) {
-        setGamePhase('DRAFTING');
-    }
+    if (
+    gameState.phase === 'NAME_ENTRY' &&
+    playerData[1]?.name &&
+    playerData[2]?.name
+) {
+    setGamePhase('DRAFTING');
+}
+
 
     // DEPRECATED: Turn switching is now handled by withFirebaseSync after a successful action.
     // The shouldSwitchTurn parameter is kept for compatibility but is no longer used for switching turns here.

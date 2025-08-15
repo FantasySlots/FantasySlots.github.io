@@ -282,17 +282,6 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    // 🚫 Block drafting 2 players from the same team in the same turn
-    if (
-        playerData[playerNum].draftedPlayers.length > 0 &&
-        playerData[playerNum].team &&
-        playerData[playerNum].team.id === player.teamId
-    ) {
-        console.warn(`Player ${playerNum} has already drafted a player from ${playerData[playerNum].team.name} this turn.`);
-        alert('You have already drafted a player from this team this turn. Please select a new team or auto-draft.');
-        return;
-    }
-
     // 🚫 Full roster check
     if (isFantasyRosterFull(playerNum)) {
         console.warn(`Player ${playerNum}'s fantasy roster is full. Cannot draft ${player.displayName}.`);
@@ -300,20 +289,15 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    // ✅ If new team, set it
+    // ✅ If new team, set it (just for logo/UI purposes)
     if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
         playerData[playerNum].team = teams.find(t => t.id === player.teamId) || playerData[playerNum].team;
         console.log(`Player ${playerNum}: now drafting from team (${playerData[playerNum].team?.name || 'Unknown'}) in manual draft.`);
     }
 
-    // Add to draftedPlayers for same-turn tracking
-    playerData[playerNum].draftedPlayers.push(player);
-
     const afterDraftActions = () => {
-        // 🆕 Always clear draftedPlayers AFTER pick so turn starts fresh
+        // 🆕 Clear draftedPlayers immediately after each pick
         playerData[playerNum].draftedPlayers = [];
-
-        // Force UI refresh so greying happens right away
         updateLayout();
     };
 

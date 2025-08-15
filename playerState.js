@@ -121,32 +121,33 @@ export function isPlayerPositionUndraftable(playerNum, originalPosition) {
 
 
 // gameFlow.js
-export function findAvailableSlotForPlayer(playerNum, player) {
+function findAvailableSlotForPlayer(playerNum, player) {
     const roster = playerData[playerNum].rosterSlots;
-    let pos = player.position?.abbreviation?.toUpperCase() || player.position?.name?.toUpperCase();
+    let position = player.position?.abbreviation || player.position?.name;
+    if (position === 'PK') position = 'K';
 
-    if (pos === 'PK') pos = 'K';
+    const isSlotEmpty = slotId => {
+        const slotVal = roster[slotId];
+        return !slotVal || !slotVal.id;
+    };
 
-    if (pos === 'QB' && !roster.QB) return 'QB';
-    if (pos === 'K' && !roster.K) return 'K';
-    if (pos === 'DEF' && !roster.DEF) return 'DEF';
+    if (position === 'QB' && isSlotEmpty('QB')) return 'QB';
+    if (position === 'K' && isSlotEmpty('K')) return 'K';
+    if (position === 'DEF' && isSlotEmpty('DEF')) return 'DEF';
 
-    if (pos === 'RB') {
-        if (!roster.RB) return 'RB';
-        if (!roster.FLEX) return 'FLEX';
+    if (position === 'RB') {
+        if (isSlotEmpty('RB')) return 'RB';
+        if (isSlotEmpty('FLEX')) return 'FLEX';
     }
-    if (pos === 'WR') {
-        if (!roster.WR1) return 'WR1';
-        if (!roster.WR2) return 'WR2';
-        if (!roster.FLEX) return 'FLEX';
+    if (position === 'WR') {
+        if (isSlotEmpty('WR1')) return 'WR1';
+        if (isSlotEmpty('WR2')) return 'WR2';
+        if (isSlotEmpty('FLEX')) return 'FLEX';
     }
-    if (pos === 'TE') {
-        if (!roster.TE) return 'TE';
-        if (!roster.FLEX) return 'FLEX';
+    if (position === 'TE') {
+        if (isSlotEmpty('TE')) return 'TE';
+        if (isSlotEmpty('FLEX')) return 'FLEX';
     }
 
     return null;
 }
-
-
-

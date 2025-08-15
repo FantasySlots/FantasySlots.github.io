@@ -56,11 +56,13 @@ export function updateLocalPlayerData(remotePlayerData) {
  */
 export async function switchTurn() {
     gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
-    
+    updateLayout(undefined, gameState); // Apply change locally immediately
+
     if (gameMode === 'multiplayer') {
         await syncWithFirebase();
     }
 }
+
 
 /**
  * NEW: Sets the current game phase.

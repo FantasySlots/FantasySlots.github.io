@@ -134,7 +134,7 @@ function sanitizeForFirebase(obj) {
     return obj;
 }
 
-export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
+export function withFirebaseSync(actionFn) {
     return async (...args) => {
         const playerNum = args[0];
 
@@ -156,20 +156,11 @@ export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
 
         await actionFn(...args);
 
-        if (switchOnComplete) {
-            const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
-            if (bothFull) {
-                console.log(`[withFirebaseSync] Both rosters full — setting phase to COMPLETE`);
-                setGamePhase('COMPLETE');
-            } else {
-                console.log(`[withFirebaseSync] Switching turn from Player ${gameState.currentPlayer}`);
-                switchTurn();
-            }
-        }
-
+        // Always push the latest game state to Firebase
         await syncWithFirebase();
     };
 }
+
 
 
 

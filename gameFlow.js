@@ -291,58 +291,74 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
-    if (isAlreadyInFantasyRoster) {
-        console.warn(`Player ${player.displayName} is already in Player ${playerNum}'s fantasy roster.`);
+    const otherPlayerNum = playerNum === 1 ? 2 : 1;
+
+    // Prevent drafting the same player twice by either player
+    const isAlreadyDraftedByMe = Object.values(playerData[playerNum].rosterSlots)
+        .some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
+    const isAlreadyDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots)
+        .some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
+
+    if (isAlreadyDraftedByMe) {
         alert(`${player.displayName} is already in your fantasy roster!`);
         return;
     }
-
-    // This check ensures only one player is drafted per 'team spin'
-    if (playerData[playerNum].draftedPlayers.length > 0) {
-        console.warn(`Player ${playerNum} has already drafted a player from this team. draftedPlayers.length: ${playerData[playerNum].draftedPlayers.length}`);
-        alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
+    if (isAlreadyDraftedByOpponent) {
+        alert(`${player.displayName} has already been drafted by ${playerData[otherPlayerNum].name}!`);
         return;
     }
 
     if (isFantasyRosterFull(playerNum)) {
-        console.warn(`Player ${playerNum}'s fantasy roster is full. Cannot draft ${player.displayName}.`);
         alert('Your fantasy roster is full! You cannot draft more players.');
         return;
     }
 
+    // ✅ Reset draftedPlayers only if the player's current team is different from the one we have stored
+    if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
+        playerData[playerNum].draftedPlayers = [];
+        console.log(`Player ${playerNum}: draftedPlayers reset due to new team (${player.teamName || player.teamId}).`);
+    }
+
+    // Track this player's current NFL team
+    if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
+        playerData[playerNum].team = {
+            id: player.teamId,
+            name: player.teamName,
+            logo: player.teamLogo
+        };
+    }
+
     const flexPositions = ['RB', 'WR', 'TE'];
 
-if (flexPositions.includes(originalPosition)) {
-    showSlotSelectionModal(
-        player, 
-        playerNum, 
-        originalPosition, 
-        playerData[playerNum], 
-        gameMode === 'multiplayer' 
-            ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true }) 
-            : assignPlayerToSlot, 
-        hideSlotSelectionModal
-    );
-} else {
-    let targetSlot;
-    if (originalPosition === 'QB') targetSlot = 'QB';
-    else if (originalPosition === 'K') targetSlot = 'K';
-    else if (originalPosition === 'DEF') targetSlot = 'DEF';
-
-    if (targetSlot) {
-        if (gameMode === 'multiplayer') {
-            withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, player, targetSlot);
-        } else {
-            assignPlayerToSlot(playerNum, player, targetSlot);
-        }
+    if (flexPositions.includes(originalPosition)) {
+        showSlotSelectionModal(
+            player, 
+            playerNum, 
+            originalPosition, 
+            playerData[playerNum], 
+            gameMode === 'multiplayer' 
+                ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true }) 
+                : assignPlayerToSlot, 
+            hideSlotSelectionModal
+        );
     } else {
-        console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
-        alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
+        let targetSlot;
+        if (originalPosition === 'QB') targetSlot = 'QB';
+        else if (originalPosition === 'K') targetSlot = 'K';
+        else if (originalPosition === 'DEF') targetSlot = 'DEF';
+
+        if (targetSlot) {
+            if (gameMode === 'multiplayer') {
+                withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, player, targetSlot);
+            } else {
+                assignPlayerToSlot(playerNum, player, targetSlot);
+            }
+        } else {
+            alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
+        }
     }
 }
 
-}
 
 /**
  * Assigns a drafted player to a specific fantasy roster slot.

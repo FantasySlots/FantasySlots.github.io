@@ -479,21 +479,23 @@ export function updateLayout(playersPresence = {}) {
             renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
 
             // 🔹 Always visually show whose turn it is
-            const isMyTurn = playerNum === gameState.currentPlayer;
-            if (isMyTurn) {
-                playerSection.classList.add('active-turn');
-                playerSection.classList.remove('inactive-turn');
-            } else {
-                playerSection.classList.add('inactive-turn');
-                playerSection.classList.remove('active-turn');
-            }
+// Determine turn and local player status
+const isLocalPlayer = gameMode !== 'multiplayer' || playerNum === localPlayerNum;
+const isMyTurn = playerNum === gameState.currentPlayer;
 
-            // 🔹 Disable controls for non-local player in multiplayer
-            if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
-                disablePlayerControls(playerNum);
-            } else {
-                enablePlayerControls(playerNum);
-            }
+if (isMyTurn && isLocalPlayer) {
+    // Active player gets controls
+    enablePlayerControls(playerNum);
+    disablePlayerControls(playerNum === 1 ? 2 : 1);
+    playerSection.classList.add('active-turn');
+    playerSection.classList.remove('inactive-turn');
+} else {
+    // Inactive or remote players lose controls
+    disablePlayerControls(playerNum);
+    playerSection.classList.add('inactive-turn');
+    playerSection.classList.remove('active-turn');
+}
+
 
             // Logo and team name logic
             if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {

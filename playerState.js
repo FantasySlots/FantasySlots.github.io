@@ -17,7 +17,7 @@ export const playerData = {
         team: null, 
         draftedPlayers: [], 
         rosterSlots: { 
-            QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null 
+            QB: null, RB: null, WR1: null, WR2: null, TE: null, FLEX: null, DEF: null, K: null 
         },
         isSetupStarted: false // NEW: Flag to track if player's setup process has begun
     },
@@ -27,7 +27,7 @@ export const playerData = {
         team: null, 
         draftedPlayers: [], 
         rosterSlots: {
-            QB: null, RB: null, WR1: null, WR2: null, TE: null, Flex: null, DEF: null, K: null 
+            QB: null, RB: null, WR1: null, WR2: null, TE: null, FLEX: null, DEF: null, K: null 
         },
         isSetupStarted: false // NEW: Flag to track if player's setup process has begun
     }
@@ -84,9 +84,9 @@ export function isFantasyRosterFull(playerNum) {
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) { 
         return false; 
     } 
-console.log(`Roster check for P${playerNum}:`, roster); // DEBUG
-    const roster = playerData[playerNum].rosterSlots; 
 
+    const roster = playerData[playerNum].rosterSlots; 
+console.log(`Roster check for P${playerNum}:`, roster); // DEBUG
     // Match actual slot keys used in your roster data 
     const requiredSlots = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'FLEX', 'DEF', 'K']; 
 
@@ -105,9 +105,9 @@ export function isPlayerPositionUndraftable(playerNum, originalPosition) {
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) { 
         return true; // Assume undraftable if data is missing 
     } 
-    console.log(`Undraftable check for P${playerNum} (${originalPosition}):`, playerData[playerNum].rosterSlots); // DEBUG
+    
     const rosterSlots = playerData[playerNum].rosterSlots; 
-
+console.log(`Undraftable check for P${playerNum} (${originalPosition}):`, playerData[playerNum].rosterSlots); // DEBUG
     if (originalPosition === 'QB') { 
         return rosterSlots.QB !== null; 
     } 

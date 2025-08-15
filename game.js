@@ -254,24 +254,20 @@ async function setupMultiplayerGame() {
         document.getElementById('copy-link-btn').textContent = 'Copied!';
     });
 
-   onValue(gameRef, (snapshot) => {
-    if (isSyncing) {
-        console.log("[SYNC RECEIVE] Ignored because isSyncing=true");
-        return;
-    }
+onValue(gameRef, (snapshot) => {
+    if (isSyncing) return;
     const remoteData = snapshot.val();
-    console.log("[SYNC RECEIVE] Data from Firebase:", {
-        currentPlayer: remoteData?.gameState?.currentPlayer,
-        gameState: remoteData?.gameState,
-        playerData: remoteData?.playerData
-    });
-
     if (remoteData) {
-        Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
+        console.log("[SYNC RECEIVE] Data from Firebase:", remoteData);
+
+        Object.assign(gameState, remoteData.gameState || {});
         updateLocalPlayerData(remoteData.playerData);
-        updateLayout(remoteData.players);
+
+        // Pass the exact state we got from Firebase
+        updateLayout(remoteData.players, remoteData.gameState);
     }
 });
+
     
     // Wrap actions with Firebase sync logic
     // CRITICAL FIX: The action is for player 1, not necessarily the local player.
@@ -392,10 +388,13 @@ function getOrCreateClientId() {
  * @param {boolean} shouldSwitchTurn - Whether to switch the current player turn.
  * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
-export function updateLayout(playersPresence = {}) {
+export function updateLayout(playersPresence = {}, currentState = gameState) {
+    const phase = currentState.phase;
+    const currentPlayer = currentState.currentPlayer;
+
     // Phase transition check for name entry
     if (
-        gameState.phase === 'NAME_ENTRY' &&
+        phase === 'NAME_ENTRY' &&
         playerData[1]?.name &&
         playerData[2]?.name
     ) {
@@ -448,7 +447,7 @@ export function updateLayout(playersPresence = {}) {
         const isCurrentPlayerRosterFull = isFantasyRosterFull(playerNum);
         const readyMessageEl = document.getElementById(`player${playerNum}-ready-message`);
 
-        if (gameState.phase === 'NAME_ENTRY') {
+        if (phase === 'NAME_ENTRY') {
             playerSection.classList.remove('active-turn', 'inactive-turn');
             playerDisplayDiv.style.display = 'none';
 
@@ -469,7 +468,7 @@ export function updateLayout(playersPresence = {}) {
 
             renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
 
-            const isMyTurn = playerNum === gameState.currentPlayer;
+            const isMyTurn = playerNum === currentPlayer;
             if (isMyTurn) {
                 playerSection.classList.add('active-turn');
                 playerSection.classList.remove('inactive-turn');
@@ -535,6 +534,7 @@ export function updateLayout(playersPresence = {}) {
         updateAvatarPreview(playerNum, playerData[playerNum].avatar);
     });
 }
+
 
 
 /**

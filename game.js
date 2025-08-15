@@ -40,7 +40,7 @@ let isSyncing = false; // Flag to prevent feedback loops
  * NEW: Sync local state with Firebase.
  * This function is the single point of truth for updating the remote state.
  */
-expot async function syncWithFirebase() {
+export async function syncWithFirebase() {
     if (gameMode !== 'multiplayer' || !gameRef) return;
     
     isSyncing = true; // Prevent onValue listener from re-triggering actions

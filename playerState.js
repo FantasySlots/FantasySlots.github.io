@@ -94,62 +94,59 @@ export function isFantasyRosterFull(playerNum) {
 }
 
 export function isPlayerPositionUndraftable(playerNum, originalPosition) {
-    const roster = playerData[playerNum]?.rosterSlots || {};
-    let pos = originalPosition?.toUpperCase();
+    if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
+        console.log(`Undraftable check for P${playerNum}: roster data missing`);
+        return true;
+    }
+
+    // Create a dummy player to pass into findAvailableSlotForPlayer
+    const dummyPlayer = {
+        position: { abbreviation: originalPosition },
+        displayName: `Dummy ${originalPosition}`
+    };
+
+    const slot = findAvailableSlotForPlayer(playerNum, dummyPlayer);
+    const undraftable = !slot;
+
+    console.log(
+        `Undraftable check for P${playerNum} (${originalPosition}):`,
+        playerData[playerNum].rosterSlots,
+        `=> ${undraftable ? 'UNDRAFTABLE' : 'AVAILABLE in ' + slot}`
+    );
+
+    return undraftable;
+}
+
+
+
+
+// gameFlow.js
+export function findAvailableSlotForPlayer(playerNum, player) {
+    const roster = playerData[playerNum].rosterSlots;
+    let pos = player.position?.abbreviation?.toUpperCase() || player.position?.name?.toUpperCase();
+
     if (pos === 'PK') pos = 'K';
 
-    switch (pos) {
-        case 'QB':
-            return !!roster.QB;
-        case 'RB':
-            return !!roster.RB && !!roster.FLEX;
-        case 'WR':
-            return !!roster.WR1 && !!roster.WR2 && !!roster.FLEX;
-        case 'TE':
-            return !!roster.TE && !!roster.FLEX;
-        case 'K':
-            return !!roster.K;
-        case 'DEF':
-            return !!roster.DEF;
-        default:
-            return true;
+    if (pos === 'QB' && !roster.QB) return 'QB';
+    if (pos === 'K' && !roster.K) return 'K';
+    if (pos === 'DEF' && !roster.DEF) return 'DEF';
+
+    if (pos === 'RB') {
+        if (!roster.RB) return 'RB';
+        if (!roster.FLEX) return 'FLEX';
     }
+    if (pos === 'WR') {
+        if (!roster.WR1) return 'WR1';
+        if (!roster.WR2) return 'WR2';
+        if (!roster.FLEX) return 'FLEX';
+    }
+    if (pos === 'TE') {
+        if (!roster.TE) return 'TE';
+        if (!roster.FLEX) return 'FLEX';
+    }
+
+    return null;
 }
 
-
-
-export function findAvailableSlotForPlayer(playerNum, player) {
-    if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
-        console.log(`findAvailableSlotForPlayer: P${playerNum} roster data missing.`);
-        return null;
-    }
-
-    const roster = playerData[playerNum].rosterSlots;
-    const hasPlayer = slotId => roster[slotId] && roster[slotId].id;
-    let position = player.position?.abbreviation || player.position?.name;
-    if (position === 'PK') position = 'K';
-
-    let availableSlot = null;
-
-    if (position === 'QB' && !hasPlayer('QB')) availableSlot = 'QB';
-    else if (position === 'K' && !hasPlayer('K')) availableSlot = 'K';
-    else if (position === 'DEF' && !hasPlayer('DEF')) availableSlot = 'DEF';
-    else if (position === 'RB') {
-        if (!hasPlayer('RB')) availableSlot = 'RB';
-        else if (!hasPlayer('FLEX')) availableSlot = 'FLEX';
-    }
-    else if (position === 'WR') {
-        if (!hasPlayer('WR1')) availableSlot = 'WR1';
-        else if (!hasPlayer('WR2')) availableSlot = 'WR2';
-        else if (!hasPlayer('FLEX')) availableSlot = 'FLEX';
-    }
-    else if (position === 'TE') {
-        if (!hasPlayer('TE')) availableSlot = 'TE';
-        else if (!hasPlayer('FLEX')) availableSlot = 'FLEX';
-    }
-
-    console.log(`findAvailableSlotForPlayer: P${playerNum} ${player.displayName} (${position}) => ${availableSlot}`);
-    return availableSlot;
-}
 
 

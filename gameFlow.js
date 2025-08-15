@@ -132,7 +132,7 @@ export async function autoDraft(playerNum) {
     showTeamAnimationOverlay('Auto-drafting a player...');
 
     const animationDuration = 3000; // 3 seconds total
-    
+
     // Animate through player headshots while searching
     let animateInterval;
     const headshotsForAnimation = [];
@@ -243,12 +243,8 @@ export async function autoDraft(playerNum) {
 
                 setTimeout(async () => {
                     hideTeamAnimationOverlay();
-
-                    if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
-                        await withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, chosenPlayer, availableSlot);
-                    } else {
-                        assignPlayerToSlot(playerNum, chosenPlayer, availableSlot);
-                    }
+                    // Always use assignPlayerToSlot — it will switch turn & sync if multiplayer
+                    assignPlayerToSlot(playerNum, chosenPlayer, availableSlot);
                 }, 1500);
             } else {
                 showTeamAnimationOverlay(`No draftable player found! Try again.`);
@@ -268,6 +264,7 @@ export async function autoDraft(playerNum) {
         }
     }, animationDuration - 1500);
 }
+
 
 
 

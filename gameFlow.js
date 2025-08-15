@@ -261,10 +261,14 @@ export async function autoDraft(playerNum) {
                 setTimeout(() => {
                     hideTeamAnimationOverlay();
                     if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
-    updateLayout(false); // don’t switch locally in multiplayer
+    // No local switch — Firebase sync will handle UI updates
+    updateLayout(false);
 } else {
-    updateLayout(true); // still switch in local mode
+    // Local games still need the turn change here
+    updateLayout(true);
+    switchTurn(); // keep turn switching in local mode only
 }
+
 
                 }, 1500); // Show drafted player for a bit
             } else {
@@ -413,8 +417,11 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
     
     // Update layout to reflect the drafted player and switch turns
     if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
-    updateLayout(false); // no local switch in multiplayer
+    // No local switch — Firebase sync will handle UI updates
+    updateLayout(false);
 } else {
+    // Local games still need the turn change here
     updateLayout(true);
+    switchTurn(); // keep turn switching in local mode only
 }
 }

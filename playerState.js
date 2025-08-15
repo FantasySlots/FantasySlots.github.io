@@ -80,18 +80,15 @@ export function resetGameState() {
  * @returns {boolean} True if the roster is full, false otherwise.
  */
 export function isFantasyRosterFull(playerNum) {
-    // Guard clause
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
         return false;
     }
 
     const roster = playerData[playerNum].rosterSlots;
+    console.log(`Roster check for P${playerNum}:`, roster); // DEBUG
 
-    // Match actual slot keys used in your roster data
     const requiredSlots = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'FLEX', 'DEF', 'K'];
-
-    // Every required slot must be truthy (not null or undefined)
-    return requiredSlots.every(slot => roster[slot]);
+    return requiredSlots.every(slot => roster[slot] !== null);
 }
 
 
@@ -106,6 +103,8 @@ export function isPlayerPositionUndraftable(playerNum, originalPosition) {
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
         return true; // Assume undraftable if data is missing
     }
+    console.log(`Undraftable check for P${playerNum} (${originalPosition}):`, playerData[playerNum].rosterSlots); // DEBUG
+
     const rosterSlots = playerData[playerNum].rosterSlots;
 
     if (originalPosition === 'QB') {

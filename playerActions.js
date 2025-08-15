@@ -4,7 +4,7 @@
  */
 import { playerData, gameState, resetGameState } from './playerState.js';
 import { getRandomElement } from './utils.js';
-import { updateLayout } from './game.js';
+import { updateLayout } from './uiRenderer.js';
 
 // Define available avatars
 export const AVATAR_SVGS = [

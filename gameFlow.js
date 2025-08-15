@@ -9,7 +9,7 @@ import { shuffleArray, getRandomElement } from './utils.js';
 import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
 import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';
 import { teams } from './data.js';
-import { updateLayout } from './uiRender.js';
+import { updateLayout } from './uiRenderer.js';
 
 /**
  * Handles the process of selecting a random NFL team.

@@ -76,7 +76,7 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     // NEW: Logic to show/hide team selection buttons
     // The buttons should be hidden if a team is selected AND no player has been drafted from it yet.
     // This forces the user to draft from the currently displayed team roster.
-    const rosterIsFull = isFantasyRosterFullFn(playerNum);
+    const rosterIsFull = isFantasyRosterFullFn();
     const teamIsSelected = playerDataForPlayer.team !== null && playerDataForPlayer.team.rosterData;
     const hasDraftedFromCurrentTeam = playerDataForPlayer.draftedPlayers.length > 0;
     
@@ -146,7 +146,7 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
     // NEW: Create a set of opponent's drafted player IDs for quick lookup.
     const opponentDraftedIds = new Set(Object.values(opponentData.rosterSlots).filter(p => p).map(p => p.id));
     const canDraftFromCurrentTeam = playerDataForPlayer.draftedPlayers.length === 0;
-    const rosterIsFull = isFantasyRosterFullFn(playerNum);
+    const rosterIsFull = isFantasyRosterFullFn();
 
     const positionOrder = ['QB', 'RB', 'WR', 'TE', 'K'];
     positionOrder.forEach(position => {

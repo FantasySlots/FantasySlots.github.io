@@ -499,17 +499,28 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
                 }
 
             } else if (playerData[playerNum].avatar) {
-                // If no team is selected but player has an avatar, show avatar and "Select your team!"
-                playerLogoEl.src = playerData[playerNum].avatar;
-                playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-                playerLogoEl.classList.add('is-avatar');
-                document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
-            } else { // Fallback if no avatar or team
-                playerLogoEl.src = '';
-                playerLogoEl.alt = '';
-                playerLogoEl.classList.remove('is-avatar');
-                document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
-            }
+    const isMyTurn = playerNum === gameState.currentPlayer;
+    const isLocalPlayer = gameMode !== 'multiplayer' || playerNum === localPlayerNum;
+
+    if (isMyTurn && isLocalPlayer) {
+        // It’s THIS player’s own turn → normal behavior
+        playerLogoEl.src = playerData[playerNum].avatar;
+        playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+        playerLogoEl.classList.add('is-avatar');
+        document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+
+        // Hide overlay if it was showing
+        hideTeamAnimationOverlay();
+    } else {
+        // It’s the OTHER player’s turn → show picking message + overlay animation
+        document.getElementById(`player${playerNum}-team-name`).textContent =
+            `${playerData[gameState.currentPlayer].name} is picking...`;
+
+        // Show the overlay animation with cycling logos (no logoSrc = cycle mode)
+        showTeamAnimationOverlay(`${playerData[gameState.currentPlayer].name} is picking...`);
+    }
+}
+
             
             // Render fantasy roster always if name is confirmed, it will show as empty slots if not filled
             displayFantasyRoster(playerNum, playerData[playerNum], teams, isCurrentPlayerRosterFull, openPlayerStatsModalCaller);

@@ -123,10 +123,11 @@ export async function autoDraft(playerNum) {
         alert('Please enter your name first!');
         return;
     }
-    if (isFantasyRosterFull()) {
-        alert('Your fantasy roster is already full!');
-        return;
-    }
+if (isPlayerRosterFull(playerNum)) {
+    alert('Your fantasy roster is already full!');
+    return;
+}
+
 
     // Show initial animation overlay
     showTeamAnimationOverlay('Auto-drafting a player...');

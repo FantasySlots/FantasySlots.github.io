@@ -201,11 +201,14 @@ async function setupMultiplayerGame() {
         // This client is already Player 2 (reconnecting).
         localPlayerNum = 2;
     } else {
-        // Both slots are taken by other clients.
-        alert("This game room is full!");
-        window.location.href = 'index.html';
-        return;
-    }
+    // Both slots are taken by other clients → join as spectator
+    localPlayerNum = null; // spectator has no playerNum
+    const spectatorsRef = ref(db, `games/${roomId}/spectators`);
+    const newSpectatorRef = push(spectatorsRef);
+    await set(newSpectatorRef, { clientId, connected: true, lastSeen: serverTimestamp() });
+
+    console.log("Joined as spectator");
+}
 
     // Now, set the playerRef and update Firebase based on the determined localPlayerNum
     if (localPlayerNum === 1) {

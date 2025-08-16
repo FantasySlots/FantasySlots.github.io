@@ -500,15 +500,45 @@ const hasRolledButNotPicked = (
   playerData[playerNum].draftedPlayers.length === 0
 );
 
-if (noTeamsRolledYet && playerData[playerNum].avatar) {
+const isAutoDrafting = !!playerData[playerNum].isAutoDrafting;
+
+// 🔁 During AUTO-DRAFT: opponent sees cycling; current player sees their avatar (no cycling)
+if (isAutoDrafting) {
+  if (playerNum !== localPlayerNum) {
+    // I'm the opponent looking at the auto-drafting player's panel → cycle logos
+    startLogoCycleInElement(playerLogoEl, teams, 120);
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+      `${playerData[playerNum].name} is auto-drafting...`;
+  } else {
+    // I'm the current player → just show my avatar while the overlay runs
+    stopLogoCycleInElement(playerLogoEl);
+    if (playerData[playerNum].avatar) {
+      playerLogoEl.src = playerData[playerNum].avatar;
+      playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+      playerLogoEl.classList.add('is-avatar');
+    } else {
+      playerLogoEl.src = '';
+      playerLogoEl.alt = '';
+      playerLogoEl.classList.remove('is-avatar');
+    }
+    document.getElementById(`player${playerNum}-team-name`).textContent = 'Auto-drafting...';
+  }
+
+  // Don’t show draft interface while auto-drafting
+  const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+  inlineRosterEl.innerHTML = '';
+}
+// 🎬 Very first frame (no teams yet): show avatars, except opponent sees cycling on current player's slot
+else if (noTeamsRolledYet && playerData[playerNum].avatar) {
   if (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) {
-    // 👀 Opponent view → show cycling on the very first roll
+    // Opponent view → show cycling on the very first roll
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is rolling...`;
   } else {
-    // 🎬 Everyone else just sees avatars
+    // Everyone else → avatars
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -516,19 +546,20 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is ready to roll!`;
   }
-
-} else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-  // ✅ Roster complete → avatar frame
+}
+// ✅ Roster complete → avatar frame
+else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
   stopLogoCycleInElement(playerLogoEl);
   playerLogoEl.src = playerData[playerNum].avatar;
   playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
   playerLogoEl.classList.add('is-avatar');
   document.getElementById(`player${playerNum}-team-name`).textContent =
     `${playerData[playerNum].name}'s Roster`;
-
-} else if (hasRolledButNotPicked) {
+}
+// 🎯 A team is rolled but not picked yet
+else if (hasRolledButNotPicked) {
   if (playerNum === gameState.currentPlayer) {
-    // 👤 Current player (my turn) → show rolled team logo + draft interface
+    // Current player → show rolled team logo + draft UI
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
@@ -548,7 +579,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
       draftPlayer
     );
   } else {
-    // 👀 Opponent’s perspective → still avatar, no cycling yet
+    // Opponent → still avatar, no cycling during draft interface
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -556,9 +587,9 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is waiting...`;
   }
-
-} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-  // ✅ After draft → show locked team logo
+}
+// 🏈 After draft → locked team logo
+else if (playerData[playerNum].team && playerData[playerNum].team.id) {
   stopLogoCycleInElement(playerLogoEl);
   playerLogoEl.src = playerData[playerNum].team.logo;
   playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
@@ -568,28 +599,28 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
 
   const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
   inlineRosterEl.innerHTML = '';
-
-} else {
-  // 🔄 Default: either auto-drafting or rolling
-  if (
-    (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) ||
-    playerData[playerNum].isAutoDrafting
-  ) {
-    // Opponent view of current player OR they’re in auto-draft → cycle
+}
+// 🔄 Default: during rolling phase (manual rolls)
+else {
+  if (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) {
+    // Opponent sees cycling while current player is rolling
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is rolling...`;
   } else {
-    // Otherwise → just show avatar
+    // Otherwise just show avatars
     stopLogoCycleInElement(playerLogoEl);
-    playerLogoEl.src = playerData[playerNum].avatar;
-    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-    playerLogoEl.classList.add('is-avatar');
+    playerLogoEl.src = playerData[playerNum].avatar || '';
+    playerLogoEl.alt = playerData[playerNum].avatar
+      ? `${playerData[playerNum].name}'s avatar`
+      : '';
+    playerLogoEl.classList.toggle('is-avatar', !!playerData[playerNum].avatar);
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is waiting...`;
   }
 }
+
 
         // --- Roster + Display ---
         displayFantasyRoster(

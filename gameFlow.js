@@ -335,13 +335,15 @@ export function draftPlayer(playerNum, player, originalPosition) {
 
         if (targetSlot) {
             // 🚨 sanitize team before persisting to Firebase
-            if (playerData[playerNum].team && playerData[playerNum].team.rosterData) {
-                playerData[playerNum].team = {
-                    id: playerData[playerNum].team.id,
-                    name: playerData[playerNum].team.name,
-                    abbreviation: playerData[playerNum].team.abbreviation
-                };
-            }
+           if (playerData[playerNum].team && playerData[playerNum].team.rosterData) {
+    const t = playerData[playerNum].team;
+    playerData[playerNum].team = {
+        id: t.id ?? null,
+        name: t.name ?? null,
+        abbreviation: t.abbreviation ?? null  // 🚨 avoid undefined
+    };
+}
+
 
             assignPlayerToSlot(playerNum, player, targetSlot);
         } else {

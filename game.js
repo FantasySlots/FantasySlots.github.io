@@ -469,8 +469,8 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
             playerSection.classList.remove('active-turn', 'inactive-turn');
         }
 
-        // --- Disable Non-local Controls in Multiplayer ---
-        if (gameMode === 'multiplayer') {
+// --- Disable controls depending on game mode ---
+if (gameMode === 'multiplayer') {
     const isMyTurn = playerNum === gameState.currentPlayer;
     const isLocal = playerNum === localPlayerNum;
 
@@ -482,9 +482,11 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         playerSection.style.pointerEvents = 'auto';
     }
 } else {
-    // Local 2-player game: allow interaction always
-    playerSection.style.pointerEvents = 'auto';
+    // Local 2-player game: only allow the current player's section
+    const isMyTurn = playerNum === gameState.currentPlayer;
+    playerSection.style.pointerEvents = isMyTurn ? 'auto' : 'none';
 }
+
 
 
         // --- Team Logo / Avatar / Team Name ---

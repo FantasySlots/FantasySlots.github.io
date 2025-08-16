@@ -60,7 +60,8 @@ export async function syncWithFirebase() {
         console.log("[SYNC PUSH] isSyncing reset to false");
 
         // Refresh UI instantly for the local player
-        updateLayout(playersPresence, gameState);
+        updateLayout({}, gameState);
+
 
     } catch (error) {
         console.error("Firebase sync failed:", error);

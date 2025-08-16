@@ -367,6 +367,19 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         return;
     }
 
+    // 🚨 sanitize team before syncing so rosterData/$ref never leaks to Firebase
+    if (playerData[playerNum].team && playerData[playerNum].team.rosterData) {
+        const t = playerData[playerNum].team;
+        playerData[playerNum].team = {
+            id: t.id ?? null,
+            name: t.name ?? null,
+            abbreviation: t.abbreviation ?? null
+        };
+    }
+
+    ...
+
+
     const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
     if (isAlreadyInFantasyRoster) {
         console.warn(`ASSIGNMENT BLOCKED: ${playerObj.displayName} is already in Player ${playerNum}'s fantasy roster.`);

@@ -498,13 +498,14 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // ✅ They have rolled a team → show that team’s logo/cycling
+    // ✅ Rolled a team → show team logo / trigger cycling animation
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent =
         playerData[playerNum].team.name;
 
+    // Only render draft UI if they haven’t picked yet
     if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
         const otherPlayerNum = playerNum === 1 ? 2 : 1;
         const opponentData = playerData[otherPlayerNum];
@@ -522,21 +523,25 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         inlineRosterEl.innerHTML = '';
     }
 
-} else if (gameState.phase === 'DRAFTING' && !playerData[playerNum].team && playerData[playerNum].avatar) {
-    // ✅ Only at the very start of DRAFTING (before rolling) → show avatars
-    playerLogoEl.src = playerData[playerNum].avatar;
-    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-    playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        'Waiting to roll a team...';
+} else if (gameState.phase === 'DRAFTING' && !playerData[playerNum].team) {
+    // ✅ Very start of drafting, before any roll → show avatar if set
+    if (playerData[playerNum].avatar) {
+        playerLogoEl.src = playerData[playerNum].avatar;
+        playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+        playerLogoEl.classList.add('is-avatar');
+    } else {
+        playerLogoEl.src = '';
+        playerLogoEl.alt = '';
+        playerLogoEl.classList.remove('is-avatar');
+    }
+    document.getElementById(`player${playerNum}-team-name`).textContent = 'Waiting to roll a team...';
 
 } else {
-    // ❌ No avatar, no team → blank
+    // ❌ Fallback
     playerLogoEl.src = '';
     playerLogoEl.alt = '';
     playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        'Select your team!';
+    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
 }
 
 

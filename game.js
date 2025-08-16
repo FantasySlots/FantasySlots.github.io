@@ -488,10 +488,10 @@ if (gameMode === 'multiplayer') {
 }
 
 
-
-      // --- Team Logo / Avatar / Team Name ---
+// --- Team Logo / Avatar / Team Name ---
 if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     // ✅ Only time we show avatar frame
+    stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');
@@ -523,10 +523,13 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     }
 
 } else {
-    // ❌ Anywhere else that used to show avatar → cycle animation instead
+    // ❌ Everywhere else (even if avatar exists but not roster full) → cycle
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        (gameState.currentPlayer === playerNum)
+            ? 'Rolling for a team...'
+            : `${playerData[playerNum].name} is rolling...`;
 }
 
 

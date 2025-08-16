@@ -483,28 +483,36 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
             playerLogoEl.classList.add('is-avatar');
             document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
 
-        } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-            playerLogoEl.src = playerData[playerNum].team.logo;
-            playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-            playerLogoEl.classList.remove('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
+} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
+    if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
+        // 👇 They just rolled, haven’t picked yet → show cycling animation
+        startCyclingLogos(`Player ${playerNum} (${playerData[playerNum].name}) is picking...`);
 
-            if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
-                const otherPlayerNum = playerNum === 1 ? 2 : 1;
-                const opponentData = playerData[otherPlayerNum];
-                displayDraftInterface(
-                    playerNum,
-                    playerData[playerNum].team.rosterData,
-                    playerData[playerNum],
-                    opponentData,
-                    isFantasyRosterFull,
-                    isPlayerPositionUndraftable,
-                    draftPlayer
-                );
-            } else {
-                const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
-                inlineRosterEl.innerHTML = '';
-            }
+        const otherPlayerNum = playerNum === 1 ? 2 : 1;
+        const opponentData = playerData[otherPlayerNum];
+        displayDraftInterface(
+            playerNum,
+            playerData[playerNum].team.rosterData,
+            playerData[playerNum],
+            opponentData,
+            isFantasyRosterFull,
+            isPlayerPositionUndraftable,
+            draftPlayer
+        );
+    } else {
+        // 👇 Once they draft, stop animation and show actual team logo
+        stopCyclingLogos();
+
+        playerLogoEl.src = playerData[playerNum].team.logo;
+        playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+        playerLogoEl.classList.remove('is-avatar');
+        document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
+
+        const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+        inlineRosterEl.innerHTML = '';
+    }
+}
+
 
         } else if (playerData[playerNum].avatar) {
             playerLogoEl.src = playerData[playerNum].avatar;

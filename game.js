@@ -36,7 +36,7 @@ async function syncGameState(playerNum) {
   if (gameMode !== 'multiplayer' || !gameRef) return;
 
   isSyncing = true;
-  console.log("SYNCING to Firebase:", { gameState, playerDataFor: playerNum });
+  console.log("SYNCING to Firebase:", { gameState, playerNum, playerData: playerData[playerNum] });
 
   try {
     await update(gameRef, {
@@ -51,6 +51,7 @@ async function syncGameState(playerNum) {
     setTimeout(() => { isSyncing = false; }, 200);
   }
 }
+
 
 
 

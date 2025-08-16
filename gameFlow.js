@@ -233,17 +233,17 @@ export async function autoDraft(playerNum) {
                 }
             }
 
-           if (chosenPlayer && availableSlot) {
-    // Attach the team reference (so updateLayout shows the logo frame)
+          if (chosenPlayer && availableSlot) {
+    // ✅ Sanitize and attach the drafted-from team (safe for sync)
     playerData[playerNum].team = {
-        id: randomTeam.id,
-        name: randomTeam.name,
-        abbreviation: randomTeam.abbreviation,
-        logo: randomTeam.logo,
-        rosterData: null // no need to keep heavy data
+        id: randomTeam.id ?? null,
+        name: randomTeam.displayName || randomTeam.name || null,
+        abbreviation: randomTeam.abbreviation ?? null,
+        logo: randomTeam.logo ?? null
+        // ⚠️ no rosterData — keep it null to avoid heavy ESPN objects
     };
 
-    // Show drafted player
+    // Show drafted player animation
     const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
     const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
     showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
@@ -259,19 +259,22 @@ export async function autoDraft(playerNum) {
         statsData: null
     };
 
-    // Record that they drafted from this team
+    // Record drafted player (clean array — no leftover refs)
     playerData[playerNum].draftedPlayers = [{
         id: chosenPlayer.id,
         assignedSlot: availableSlot
     }];
 
+    // Save clean state
     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
+    // ✅ Switch turn + re-render
     setTimeout(() => {
         hideTeamAnimationOverlay();
-        updateLayout(true); // now shows correct team logo
+        updateLayout(true); // safe sync — no bloated refs
     }, 1500);
 }
+
  else {
                  showTeamAnimationOverlay(`No draftable player found! Try again.`);
                 setTimeout(() => {

@@ -3,6 +3,7 @@
  * Manages the core game state related to players, their rosters, and helper functions
  * to check roster status.
  */
+export const PLACEHOLDER_HEADSHOT = 'https://i.postimg.cc/Hxsb5C4T/Chat-GPT-Image-Aug-16-2025-02-34-57-PM.png';
 
 // NEW: Centralized game state for turn management and game phase
 export const gameState = {

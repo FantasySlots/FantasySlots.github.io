@@ -257,10 +257,14 @@ export async function autoDraft(playerNum) {
 
                 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
-                setTimeout(() => {
-                    hideTeamAnimationOverlay();
-                    updateLayout(true); // Update layout and switch turns
-                }, 1500); // Show drafted player for a bit
+    setTimeout(async () => {
+        hideTeamAnimationOverlay();
+        updateLayout(false); // update visuals but don't switch turn yet
+        // now sync this player's branch, then switch turn
+        await syncGameState(playerNum);
+        switchTurn(syncGameState, playerNum);
+    }, 1500);
+ // Show drafted player for a bit
             } else {
                  showTeamAnimationOverlay(`No draftable player found! Try again.`);
                 setTimeout(() => {
@@ -338,7 +342,7 @@ export function draftPlayer(playerNum, player, originalPosition) {
  * @param {object} playerObj - The NFL player object to assign.
  * @param {string} slotId - The fantasy roster slot ID (e.g., 'QB', 'RB', 'WR1').
  */
-export function assignPlayerToSlot(playerNum, playerObj, slotId) {
+export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
     if (playerNum !== gameState.currentPlayer) {
         console.warn(`ASSIGNMENT BLOCKED: Not Player ${playerNum}'s turn.`);
         alert("It's not your turn!");
@@ -397,7 +401,12 @@ export function assignPlayerToSlot(playerNum, playerObj, slotId) {
     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
     hideSlotSelectionModal();
-    
-    // Update layout to reflect the drafted player and switch turns
-    updateLayout(true); 
+
+// Update visuals immediately (don’t switch turn yet)
+updateLayout(false);
+
+// then sync this player's branch, and switch turn
+await syncGameState(playerNum);
+switchTurn(syncGameState, playerNum);
+
 }

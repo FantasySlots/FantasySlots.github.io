@@ -123,11 +123,19 @@ export function displayDraftInterface(
     draftContainer.innerHTML = ''; // Clear previous content before rendering new
 
     // 🚫 Hide "Roll your team" button / team-selection while drafting
-    const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-    const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-    if (teamSelectionEl) {
+    // 🚫 Handle team-selection button visibility
+const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+if (teamSelectionEl) {
+    if (isFantasyRosterFullFn(playerNum)) {
+        // Hide permanently if roster is full
+        teamSelectionEl.style.display = 'none';
+    } else {
+        // Hide only during draft interface
         teamSelectionEl.style.display = 'none';
     }
+}
+
 
     const allPlayers = teamAthletes.flatMap(positionGroup => positionGroup.items || []);
 

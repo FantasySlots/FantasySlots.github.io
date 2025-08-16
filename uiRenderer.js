@@ -197,7 +197,18 @@ if (teamSelectionEl) {
                 
                 playerDiv.innerHTML = `
                     <div class="player-card-header">
-                        ${player.headshot && player.headshot.href ? `<img class="player-photo" src="${player.headshot.href}" alt="${player.displayName}">` : ''}
+                        const safeHeadshot = player.headshot?.href || PLACEHOLDER_HEADSHOT;
+playerDiv.innerHTML = `
+    <div class="player-card-header">
+        <img class="player-photo" src="${safeHeadshot}" alt="${player.displayName}">
+        <div class="player-name-text">${player.displayName}</div>
+    </div>
+    <div class="player-meta-text">
+        <span>${player.position?.name || ''}</span>
+        <span class="draft-action-text">Draft</span>
+    </div>
+`;
+
                         <div class="player-name-text">${player.displayName}</div>
                     </div>
                     <div class="player-meta-text">

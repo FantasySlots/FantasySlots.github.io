@@ -126,6 +126,10 @@ export async function autoDraft(playerNum) {
         return;
     }
 
+    // 🔴 Mark as auto-drafting so updateLayout knows
+    playerData[playerNum].isAutoDrafting = true;
+    updateLayout(false);
+
     // Show initial animation overlay
     showTeamAnimationOverlay('Auto-drafting a player...');
 
@@ -145,7 +149,7 @@ export async function autoDraft(playerNum) {
                 const newHeadshots = data.athletes
                     .flatMap(pg => pg.items || [])
                     .map(p => p.headshot?.href)
-                    .filter(Boolean); // Filter out players without headshots
+                    .filter(Boolean);
                 if(newHeadshots.length > 0) {
                     headshotsForAnimation.push(...newHeadshots);
                 }
@@ -161,24 +165,20 @@ export async function autoDraft(playerNum) {
 
     let headshotIndex = 0;
     animateInterval = setInterval(() => {
-        // If we're running out of headshots, fetch more
         if (headshotIndex >= headshotsForAnimation.length - 5) {
             fetchHeadshotsForAnimation();
         }
 
-        // If we have headshots, cycle through them. Otherwise, fallback to team logos.
         if (headshotsForAnimation.length > 0) {
             const currentHeadshot = headshotsForAnimation[headshotIndex % headshotsForAnimation.length];
             showTeamAnimationOverlay('Searching for a player...', currentHeadshot, false);
             headshotIndex++;
         } else {
-            // Fallback to team logos if initial fetch fails or yields no headshots
             const currentTeamLogo = teams[animationTeamIndex % teams.length].logo;
             showTeamAnimationOverlay('Searching for a player...', currentTeamLogo, false);
             animationTeamIndex++;
         }
     }, 150);
-
 
     setTimeout(async () => {
         clearInterval(animateInterval);
@@ -192,18 +192,16 @@ export async function autoDraft(playerNum) {
             const opponentRosterIds = new Set(Object.values(playerData[otherPlayerNum].rosterSlots).filter(p => p).map(p => p.id));
             const ownRosterIds = new Set(Object.values(playerData[playerNum].rosterSlots).filter(p => p).map(p => p.id));
 
-            // To avoid an infinite loop if no player is available. Set a max attempts.
             const maxAttempts = teams.length * 2;
             let attempts = 0;
             let randomTeam = null;
+
             while (!draftedPlayer && attempts < maxAttempts) {
                 attempts++;
-                
-               randomTeam = getRandomElement(teams);
+                randomTeam = getRandomElement(teams);
                 
                 const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
                 const data = await response.json();
-
                 if (!data.athletes) continue;
 
                 let teamPlayers = data.athletes.flatMap(positionGroup => positionGroup.items || []);
@@ -218,7 +216,6 @@ export async function autoDraft(playerNum) {
                 shuffleArray(teamPlayers);
 
                 for (const player of teamPlayers) {
-                    // Normalize position for PK
                     if (player.position?.abbreviation === 'PK') player.position.abbreviation = 'K';
                     
                     const isDrafted = opponentRosterIds.has(player.id) || ownRosterIds.has(player.id);
@@ -228,58 +225,51 @@ export async function autoDraft(playerNum) {
                     if (availableSlot) {
                         chosenPlayer = player;
                         draftedPlayer = true;
-                        break; // Found a player
+                        break;
                     }
                 }
             }
 
-          if (chosenPlayer && availableSlot) {
-    // ✅ Sanitize and attach the drafted-from team (safe for sync)
-    playerData[playerNum].team = {
-        id: randomTeam.id ?? null,
-        name: randomTeam.displayName || randomTeam.name || null,
-        abbreviation: randomTeam.abbreviation ?? null,
-        logo: randomTeam.logo ?? null
-        // ⚠️ no rosterData — keep it null to avoid heavy ESPN objects
-    };
+            if (chosenPlayer && availableSlot) {
+                // ✅ Sanitize and attach the drafted-from team
+                playerData[playerNum].team = {
+                    id: randomTeam.id ?? null,
+                    name: randomTeam.displayName || randomTeam.name || null,
+                    abbreviation: randomTeam.abbreviation ?? null,
+                    logo: randomTeam.logo ?? null
+                };
 
-    // Show drafted player animation
-    const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
-    const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
-    showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
+                const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
+                const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
+                showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
 
-    // Assign player to fantasy roster slot
-    playerData[playerNum].rosterSlots[availableSlot] = {
-        id: chosenPlayer.id,
-        displayName: chosenPlayer.displayName,
-        originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
-        assignedSlot: availableSlot,
-        headshot: chosenPlayer.headshot,
-        fantasyPoints: null,
-        statsData: null
-    };
+                playerData[playerNum].rosterSlots[availableSlot] = {
+                    id: chosenPlayer.id,
+                    displayName: chosenPlayer.displayName,
+                    originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
+                    assignedSlot: availableSlot,
+                    headshot: chosenPlayer.headshot,
+                    fantasyPoints: null,
+                    statsData: null
+                };
 
-    // Record drafted player (clean array — no leftover refs)
-    playerData[playerNum].draftedPlayers = [{
-        id: chosenPlayer.id,
-        assignedSlot: availableSlot
-    }];
+                playerData[playerNum].draftedPlayers = [{
+                    id: chosenPlayer.id,
+                    assignedSlot: availableSlot
+                }];
 
-    // Save clean state
-    localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+                localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
-    // ✅ Switch turn + re-render
-    setTimeout(() => {
-        hideTeamAnimationOverlay();
-        updateLayout(true); // safe sync — no bloated refs
-    }, 1500);
-}
-
- else {
-                 showTeamAnimationOverlay(`No draftable player found! Try again.`);
                 setTimeout(() => {
                     hideTeamAnimationOverlay();
-                    // Don't switch turns if failed
+                    playerData[playerNum].isAutoDrafting = false; // 🟢 clear flag
+                    updateLayout(true);
+                }, 1500);
+            } else {
+                showTeamAnimationOverlay(`No draftable player found! Try again.`);
+                setTimeout(() => {
+                    hideTeamAnimationOverlay();
+                    playerData[playerNum].isAutoDrafting = false; // 🟢 clear flag
                     updateLayout(false); 
                 }, 1500);
             }
@@ -289,18 +279,13 @@ export async function autoDraft(playerNum) {
             showTeamAnimationOverlay('Auto-draft failed!');
             setTimeout(() => {
                 hideTeamAnimationOverlay();
-                updateLayout(false); // Do not switch turn on error
+                playerData[playerNum].isAutoDrafting = false; // 🟢 clear flag
+                updateLayout(false);
             }, 1500);
         }
-    }, animationDuration - 1500); // Start searching before visual animation ends
+    }, animationDuration - 1500);
 }
 
-/**
- * Initiates the drafting process for a selected player.
- * @param {number} playerNum - The player number (1 or 2).
- * @param {object} player - The NFL player object to draft.
- * @param {string} originalPosition - The player's original position (e.g., 'QB', 'RB', 'WR', 'TE', 'K', 'DEF').
- */
 export function draftPlayer(playerNum, player, originalPosition) {
     if (playerNum !== gameState.currentPlayer) {
         alert("It's not your turn!");

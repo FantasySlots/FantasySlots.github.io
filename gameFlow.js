@@ -377,7 +377,7 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         };
     }
 
-    ...
+
 
 
     const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);

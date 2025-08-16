@@ -364,33 +364,32 @@ function getOrCreateClientId() {
  * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
 export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
-    // Check game phase transition
+    // --- Phase Transition ---
     if (gameState.phase === 'NAME_ENTRY' && playerData[1].name && playerData[2].name) {
         setGamePhase('DRAFTING');
     }
 
     if (shouldSwitchTurn && gameState.phase === 'DRAFTING') {
-        // In multiplayer, only the current player can switch the turn
         if (gameMode !== 'multiplayer' || localPlayerNum === gameState.currentPlayer) {
-            switchTurn(syncGameState, localPlayerNum);
- // Pass the sync function
+            switchTurn(syncGameState, localPlayerNum); // Multiplayer sync
         } else if (gameMode === 'local') {
             switchTurn();
         }
     }
-    
+
     if (isFantasyRosterFull(1) && isFantasyRosterFull(2)) {
         setGamePhase('COMPLETE');
     }
 
+    // --- Player Container Setup ---
     const playersContainer = document.querySelector('.players-container');
-    playersContainer.classList.add('two-player-view'); // Always two player view now
+    playersContainer.classList.add('two-player-view');
     playersContainer.classList.remove('single-player-view');
 
     const addPlayer2Button = document.getElementById('add-player2-btn');
-    addPlayer2Button.style.display = 'none'; // This button is no longer needed
+    addPlayer2Button.style.display = 'none';
 
-    // NEW: Update multiplayer status UI
+    // --- Multiplayer Status UI ---
     const multiplayerStatusBox = document.getElementById('multiplayer-status-box');
     if (gameMode === 'multiplayer') {
         multiplayerStatusBox.style.display = 'block';
@@ -413,11 +412,10 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         }
     }
 
-    // Update internal display for each player section based on their individual state
+    // --- Update Each Player Section ---
     [1, 2].forEach(playerNum => {
-        // NEW: Add a guard to ensure player data exists before proceeding.
         if (!playerData[playerNum]) {
-            console.warn(`playerData for player ${playerNum} is missing. Skipping layout update for this player.`);
+            console.warn(`playerData for player ${playerNum} is missing. Skipping layout update.`);
             return;
         }
 
@@ -429,71 +427,67 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         const isCurrentPlayerRosterFull = isFantasyRosterFull(playerNum);
         const readyMessageEl = document.getElementById(`player${playerNum}-ready-message`);
 
-        // Handle visibility of name input vs team display based on game phase
+        // --- Phase: NAME ENTRY ---
         if (gameState.phase === 'NAME_ENTRY') {
             playerSection.classList.remove('active-turn', 'inactive-turn');
             playerDisplayDiv.style.display = 'none';
 
-            if (playerData[playerNum].name) { // Player has confirmed their name
+            if (playerData[playerNum].name) {
                 nameInputContainer.style.display = 'none';
                 readyMessageEl.textContent = `${playerData[playerNum].name} is ready`;
                 readyMessageEl.style.display = 'block';
                 renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
-            } else { // Player has not confirmed name
+            } else {
                 nameInputContainer.style.display = 'flex';
                 readyMessageEl.style.display = 'none';
                 renderPlayerAvatar(playerNum, `Player ${playerNum}`, null);
             }
-        } else { // DRAFTING or COMPLETE phase
-            nameInputContainer.style.display = 'none';
-            readyMessageEl.style.display = 'none';
-            playerDisplayDiv.style.display = 'block';
+            return;
+        }
 
-            // Update player title with name and avatar
-            renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
+        // --- Phase: DRAFTING or COMPLETE ---
+        nameInputContainer.style.display = 'none';
+        readyMessageEl.style.display = 'none';
+        playerDisplayDiv.style.display = 'block';
 
-            // Set active/inactive turn status
-            if (gameState.phase === 'DRAFTING') {
-                // In multiplayer, also disable inputs for the non-local player
-                const isLocalPlayer = gameMode !== 'multiplayer' || playerNum === localPlayerNum;
-                const isMyTurn = playerNum === gameState.currentPlayer;
+        // Update player header
+        renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
 
-                if (isMyTurn && isLocalPlayer) {
-                    playerSection.classList.add('active-turn');
-                    playerSection.classList.remove('inactive-turn');
-                } else {
-                    playerSection.classList.add('inactive-turn');
-                    playerSection.classList.remove('active-turn');
-                }
-            } else { // COMPLETE phase
-                 playerSection.classList.remove('active-turn', 'inactive-turn');
-            }
+        // --- Active/Inactive Turn ---
+        if (gameState.phase === 'DRAFTING') {
+            const isLocalPlayer = gameMode !== 'multiplayer' || playerNum === localPlayerNum;
+            const isMyTurn = playerNum === gameState.currentPlayer;
 
-            // In multiplayer, explicitly disable controls for the non-local player's section
-            if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
-                playerSection.style.pointerEvents = 'none';
+            if (isMyTurn && isLocalPlayer) {
+                playerSection.classList.add('active-turn');
+                playerSection.classList.remove('inactive-turn');
             } else {
-                playerSection.style.pointerEvents = 'auto';
+                playerSection.classList.add('inactive-turn');
+                playerSection.classList.remove('active-turn');
             }
+        } else {
+            playerSection.classList.remove('active-turn', 'inactive-turn');
+        }
 
-            // Update team logo / avatar and team name
-            // --- Team Logo / Avatar / Team Name ---
+        // --- Disable Non-local Controls in Multiplayer ---
+        if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
+            playerSection.style.pointerEvents = 'none';
+        } else {
+            playerSection.style.pointerEvents = 'auto';
+        }
+
+// --- Team Logo / Avatar / Team Name ---
 if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-    // Roster full → show avatar
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        `${playerData[playerNum].name}'s Roster`;
+    document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // Team selected → show team logo
-    stopLogoCycleInElement(playerLogoEl); // in case it was animating before
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
     playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        playerData[playerNum].team.name;
+    document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
 
     if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
         const otherPlayerNum = playerNum === 1 ? 2 : 1;
@@ -513,45 +507,44 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     }
 
 } else if (playerData[playerNum].avatar) {
-    const isMyTurn = playerNum === gameState.currentPlayer;
-
-    if (isMyTurn) {
-        // If it's THIS player's turn, show avatar + "Select your team!"
-        stopLogoCycleInElement(playerLogoEl);
+    // Player clicked "Roll your team" but hasn't been assigned a team yet
+    if (playerNum !== localPlayerNum) {
+        // Opponent is rolling → show cycling logos + "is picking..."
+        startLogoCycleInElement(playerLogoEl, teams, 120);
+        document.getElementById(`player${playerNum}-team-name`).textContent =
+            `${playerData[playerNum].name} is picking...`;
+    } else {
+        // Local player just sees their avatar with "Select your team!"
         playerLogoEl.src = playerData[playerNum].avatar;
         playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
         playerLogoEl.classList.add('is-avatar');
         document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
-    } else {
-        // If it's NOT this player's turn, show cycling logos + "[Name] is picking..."
-        startLogoCycleInElement(playerLogoEl, teams, 120);
-        playerLogoEl.classList.remove('is-avatar');
-        document.getElementById(`player${playerNum}-team-name`).textContent =
-            `${playerData[playerNum].name || 'Opponent'} is picking...`;
     }
 
 } else {
-    stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = '';
     playerLogoEl.alt = '';
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
 }
 
-            
-            // Render fantasy roster always if name is confirmed, it will show as empty slots if not filled
-            displayFantasyRoster(playerNum, playerData[playerNum], teams, isCurrentPlayerRosterFull, openPlayerStatsModalCaller);
-            
-            // This function also handles showing/hiding roll/auto-draft buttons and roster views
-            updatePlayerContentDisplay(playerNum, playerData[playerNum], isFantasyRosterFull);
 
-            // If roster is full, fetch fantasy points
-            if (isCurrentPlayerRosterFull) {
-                fetchAndDisplayPlayerFantasyPoints(playerNum);
-            }
+        // --- Roster + Display ---
+        displayFantasyRoster(
+            playerNum,
+            playerData[playerNum],
+            teams,
+            isCurrentPlayerRosterFull,
+            openPlayerStatsModalCaller
+        );
+
+        updatePlayerContentDisplay(playerNum, playerData[playerNum], isFantasyRosterFull);
+
+        if (isCurrentPlayerRosterFull) {
+            fetchAndDisplayPlayerFantasyPoints(playerNum);
         }
 
-        // Always update avatar preview for the selection area
+        // --- Always Update Avatar Preview ---
         updateAvatarPreview(playerNum, playerData[playerNum].avatar);
     });
 }

@@ -490,20 +490,20 @@ if (gameMode === 'multiplayer') {
 
 // --- Team Logo / Avatar / Team Name ---
 if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-    // ✅ Roster full → lock in avatar
+    // ✅ Only time we show avatar frame
+    stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        `${playerData[playerNum].name}'s Roster`;
+    document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // ✅ Rolled a team → show team logo (cycling animation handled elsewhere)
+    // Team locked in → show their team logo
+    stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
     playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        playerData[playerNum].team.name;
+    document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
 
     if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
         const otherPlayerNum = playerNum === 1 ? 2 : 1;
@@ -522,19 +522,14 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         inlineRosterEl.innerHTML = '';
     }
 
-} else if (gameState.phase === 'DRAFTING' && !playerData[playerNum].team && playerData[playerNum].avatar) {
-    // ✅ Very start of drafting, before first roll → show avatar
-    playerLogoEl.src = playerData[playerNum].avatar;
-    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-    playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = 'Waiting to roll a team...';
-
 } else {
-    // ❌ Fallback
-    playerLogoEl.src = '';
-    playerLogoEl.alt = '';
+    // ❌ Everywhere else (even if avatar exists but not roster full) → cycle
+    startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        (gameState.currentPlayer === playerNum)
+            ? 'Rolling for a team...'
+            : `${playerData[playerNum].name} is rolling...`;
 }
 
 

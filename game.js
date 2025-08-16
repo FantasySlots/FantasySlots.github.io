@@ -484,6 +484,7 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
+    // Show actual NFL team logo once assigned
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
     playerLogoEl.classList.remove('is-avatar');
@@ -507,14 +508,15 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     }
 
 } else if (playerData[playerNum].avatar) {
-    // Player clicked "Roll your team" but hasn't been assigned a team yet
-    if (playerNum !== localPlayerNum) {
-        // Opponent is rolling → show cycling logos + "is picking..."
+    // Opponent has rolled but hasn't gotten a team yet → show cycling logos
+    const noTeamYet = !playerData[playerNum].team || !playerData[playerNum].team.id;
+
+    if (noTeamYet && playerNum !== localPlayerNum) {
         startLogoCycleInElement(playerLogoEl, teams, 120);
         document.getElementById(`player${playerNum}-team-name`).textContent =
             `${playerData[playerNum].name} is picking...`;
     } else {
-        // Local player just sees their avatar with "Select your team!"
+        // Default avatar fallback
         playerLogoEl.src = playerData[playerNum].avatar;
         playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
         playerLogoEl.classList.add('is-avatar');
@@ -527,6 +529,7 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
 }
+
 
 
         // --- Roster + Display ---

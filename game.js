@@ -498,14 +498,13 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // ✅ Rolled a team → show team logo / trigger cycling animation
+    // ✅ Rolled a team → show team logo (cycling animation handled elsewhere)
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent =
         playerData[playerNum].team.name;
 
-    // Only render draft UI if they haven’t picked yet
     if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
         const otherPlayerNum = playerNum === 1 ? 2 : 1;
         const opponentData = playerData[otherPlayerNum];
@@ -523,17 +522,11 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         inlineRosterEl.innerHTML = '';
     }
 
-} else if (gameState.phase === 'DRAFTING' && !playerData[playerNum].team) {
-    // ✅ Very start of drafting, before any roll → show avatar if set
-    if (playerData[playerNum].avatar) {
-        playerLogoEl.src = playerData[playerNum].avatar;
-        playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-        playerLogoEl.classList.add('is-avatar');
-    } else {
-        playerLogoEl.src = '';
-        playerLogoEl.alt = '';
-        playerLogoEl.classList.remove('is-avatar');
-    }
+} else if (gameState.phase === 'DRAFTING' && !playerData[playerNum].team && playerData[playerNum].avatar) {
+    // ✅ Very start of drafting, before first roll → show avatar
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent = 'Waiting to roll a team...';
 
 } else {

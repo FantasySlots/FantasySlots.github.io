@@ -195,11 +195,11 @@ export async function autoDraft(playerNum) {
             // To avoid an infinite loop if no player is available. Set a max attempts.
             const maxAttempts = teams.length * 2;
             let attempts = 0;
-
+            let randomTeam = null;
             while (!draftedPlayer && attempts < maxAttempts) {
                 attempts++;
                 
-                const randomTeam = getRandomElement(teams);
+               randomTeam = getRandomElement(teams);
                 
                 const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
                 const data = await response.json();

@@ -234,6 +234,15 @@ export async function autoDraft(playerNum) {
             }
 
             if (chosenPlayer && availableSlot) {
+                               // Store the drafted team so updateLayout shows it in the frame
+// ✅ NEW: Ensure their "team" object is set so logo displays in frame
+// Attach the team reference so updateLayout can show the logo
+chosenPlayer.team = {
+    id: randomTeam.id,
+    name: randomTeam.name,
+    abbreviation: randomTeam.abbreviation,
+    logo: randomTeam.logo
+};
                  // Determine if the headshot is an avatar or a real photo
                  const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
                  const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
@@ -250,17 +259,8 @@ export async function autoDraft(playerNum) {
                     statsData: null
                 };
                 
-               // Store the drafted team so updateLayout shows it in the frame
-// ✅ NEW: Ensure their "team" object is set so logo displays in frame
-if (chosenPlayer.team) {
-    playerData[playerNum].team = {
-        id: chosenPlayer.team.id,
-        name: chosenPlayer.team.displayName || chosenPlayer.team.name,
-        abbreviation: chosenPlayer.team.abbreviation,
-        logo: chosenPlayer.team.logo,
-        rosterData: playerData[playerNum].team?.rosterData || null // keep if already loaded
-    };
-}
+
+
 
 // ✅ NEW: Record drafted player
 playerData[playerNum].draftedPlayers.push({

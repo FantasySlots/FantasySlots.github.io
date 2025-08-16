@@ -239,8 +239,11 @@ export async function autoDraft(playerNum) {
                     logo: randomTeam.logo ?? null
                 };
 
-                const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
-                const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
+import { PLACEHOLDER_HEADSHOT } from './constants.js';
+
+const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
+const headshotSrc = chosenPlayer.headshot?.href || PLACEHOLDER_HEADSHOT;
+
                 showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
 
                 playerData[playerNum].rosterSlots[availableSlot] = {
@@ -248,7 +251,7 @@ export async function autoDraft(playerNum) {
                     displayName: chosenPlayer.displayName,
                     originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
                     assignedSlot: availableSlot,
-                    headshot: chosenPlayer.headshot?.href || null,
+                     headshot: chosenPlayer.headshot?.href || PLACEHOLDER_HEADSHOT,  // 🟢 safe
                     fantasyPoints: null,
                     statsData: null
                 };

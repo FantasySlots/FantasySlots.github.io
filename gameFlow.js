@@ -248,7 +248,7 @@ export async function autoDraft(playerNum) {
                     displayName: chosenPlayer.displayName,
                     originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
                     assignedSlot: availableSlot,
-                    headshot: chosenPlayer.headshot,
+                    headshot: chosenPlayer.headshot?.href || null,
                     fantasyPoints: null,
                     statsData: null
                 };

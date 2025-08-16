@@ -108,7 +108,6 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     }
 }
 
-
 // UI Function: Display draft interface (NFL Roster of a chosen team)
 export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlayer, opponentData, isFantasyRosterFullFn, isPlayerPositionUndraftableFn, draftPlayerCallback) {
     const playerContentArea = document.getElementById(`player${playerNum}-content-area`);

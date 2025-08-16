@@ -42,33 +42,28 @@ let isSyncing = false; // Flag to prevent feedback loops
  */
 export async function syncWithFirebase() {
     if (gameMode !== 'multiplayer' || !gameRef) return;
+    
+    isSyncing = true;
+    console.log("[SYNC PUSH] Sending to Firebase:", {
+        currentPlayer: gameState.currentPlayer,
+        gameState: { ...gameState },
+        playerData: JSON.parse(JSON.stringify(playerData))
+    });
 
     try {
-        isSyncing = true;
-        console.log("[SYNC PUSH] Sending to Firebase:", {
-            currentPlayer: gameState.currentPlayer,
-            gameState: { ...gameState },
-            playerData: JSON.parse(JSON.stringify(playerData))
-        });
-
         await update(gameRef, {
             gameState: { ...gameState },
             playerData: { ...playerData }
         });
-
-        isSyncing = false;
-        console.log("[SYNC PUSH] isSyncing reset to false");
-
-        // Refresh UI instantly for the local player
-        updateLayout({}, gameState);
-
-
     } catch (error) {
         console.error("Firebase sync failed:", error);
-        isSyncing = false;
+    } finally {
+        setTimeout(() => { 
+            isSyncing = false; 
+            console.log("[SYNC PUSH] isSyncing reset to false");
+        }, 200);
     }
 }
-
 
 /**
  * Utility function to open player stats modal, acting as a bridge.
@@ -264,21 +259,15 @@ onValue(gameRef, (snapshot) => {
     if (!remoteData) return;
 
     if (isSyncing) {
-        // Still update the UI so you can see your own change reflected,
-        // but skip re-triggering game actions
         console.log("[SYNC RECEIVE] Updating UI even though isSyncing=true");
-        Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
-        updateLocalPlayerData(remoteData.playerData);
-        updateLayout(remoteData.players);
-        return;
     }
 
-    console.log("[SYNC RECEIVE] Data from Firebase:", remoteData);
-    Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
+    Object.assign(gameState, remoteData.gameState || {});
     updateLocalPlayerData(remoteData.playerData);
-    updateLayout(remoteData.players);
-});
+    updateLayout(remoteData.players, remoteData.gameState);
 
+    if (isSyncing) return; // only skip re-triggering actions, not UI
+});
 
     
     // Wrap actions with Firebase sync logic
@@ -488,7 +477,7 @@ export function updateLayout(playersPresence = {}, currentState = gameState) {
                 playerSection.classList.add('inactive-turn');
                 playerSection.classList.remove('active-turn');
             }
-/* commented this out for controlls to stop disabeling */
+
             if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
                 disablePlayerControls(playerNum);
             } else {

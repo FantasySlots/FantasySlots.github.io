@@ -39,14 +39,24 @@ export const playerData = {
  * @param {object} remotePlayerData - The playerData object from Firebase.
  */
 export function updateLocalPlayerData(remotePlayerData) {
-    if (!remotePlayerData) return;
+  if (!remotePlayerData) return;
 
-    if (remotePlayerData['1']) {
-        playerData[1] = JSON.parse(JSON.stringify(remotePlayerData['1']));
-    }
-    if (remotePlayerData['2']) {
-        playerData[2] = JSON.parse(JSON.stringify(remotePlayerData['2']));
-    }
+  const defaultRoster = {
+    QB: null, RB: null, WR1: null, WR2: null,
+    TE: null, Flex: null, DEF: null, K: null
+  };
+
+  if (remotePlayerData['1']) {
+    const p1 = JSON.parse(JSON.stringify(remotePlayerData['1']));
+    p1.rosterSlots = { ...defaultRoster, ...(p1.rosterSlots || {}) };
+    playerData[1] = p1;
+  }
+
+  if (remotePlayerData['2']) {
+    const p2 = JSON.parse(JSON.stringify(remotePlayerData['2']));
+    p2.rosterSlots = { ...defaultRoster, ...(p2.rosterSlots || {}) };
+    playerData[2] = p2;
+  }
 }
 
 

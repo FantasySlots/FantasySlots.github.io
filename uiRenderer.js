@@ -76,17 +76,16 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     // NEW: Logic to show/hide team selection buttons
     // The buttons should be hidden if a team is selected AND no player has been drafted from it yet.
     // This forces the user to draft from the currently displayed team roster.
-    const rosterIsFull = isFantasyRosterFullFn();
-    const teamIsSelected = playerDataForPlayer.team !== null && playerDataForPlayer.team.rosterData;
-    const hasDraftedFromCurrentTeam = playerDataForPlayer.draftedPlayers.length > 0;
-    
-    // Hide buttons if roster is full OR if a team is selected and waiting for a draft pick.
-    if (rosterIsFull || (teamIsSelected && !hasDraftedFromCurrentTeam)) {
-        teamSelectionEl.style.display = 'none';
-    } else {
-        // Show buttons if the roster is NOT full AND (either no team is selected yet, or a player has been drafted).
-        teamSelectionEl.style.display = 'flex';
-    }
+    const rosterIsFullForBoth = isFantasyRosterFullFn(); // Checks both players
+
+if (rosterIsFullForBoth) {
+    // Hide if both players have a full roster
+    teamSelectionEl.style.display = 'none';
+} else {
+    // Always show otherwise
+    teamSelectionEl.style.display = 'flex';
+}
+
 
     // Logic to toggle between inline NFL roster and fantasy roster display
     const hasTeamSelected = playerDataForPlayer.team !== null;

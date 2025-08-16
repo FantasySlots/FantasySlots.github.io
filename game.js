@@ -478,17 +478,20 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
 
 // --- Team Logo / Avatar / Team Name ---
 if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
+    // Roster full → show avatar and roster label
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // Show actual NFL team logo once assigned
+    // ✅ Team assigned → show actual NFL team logo
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
     playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        playerData[playerNum].team.name;
 
     if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
         const otherPlayerNum = playerNum === 1 ? 2 : 1;
@@ -507,21 +510,22 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         inlineRosterEl.innerHTML = '';
     }
 
-} else if (playerData[playerNum].avatar) {
-    // Opponent has rolled but hasn't gotten a team yet → show cycling logos
-    const noTeamYet = !playerData[playerNum].team || !playerData[playerNum].team.id;
+} else if (
+    playerNum !== localPlayerNum && // ✅ only show on the opponent
+    playerData[playerNum].team &&   // ✅ they rolled
+    !playerData[playerNum].team.logo // ✅ but no logo yet → in-between state
+) {
+    // 🔄 Show cycling logos while opponent is rolling
+    startLogoCycleInElement(playerLogoEl, teams, 120);
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        `${playerData[playerNum].name} is picking...`;
 
-    if (noTeamYet && playerNum !== localPlayerNum) {
-        startLogoCycleInElement(playerLogoEl, teams, 120);
-        document.getElementById(`player${playerNum}-team-name`).textContent =
-            `${playerData[playerNum].name} is picking...`;
-    } else {
-        // Default avatar fallback
-        playerLogoEl.src = playerData[playerNum].avatar;
-        playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-        playerLogoEl.classList.add('is-avatar');
-        document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
-    }
+} else if (playerData[playerNum].avatar) {
+    // Default avatar case
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
 
 } else {
     playerLogoEl.src = '';

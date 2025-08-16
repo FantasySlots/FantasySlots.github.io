@@ -502,31 +502,31 @@ const hasRolledButNotPicked = (
 
 if (noTeamsRolledYet && playerData[playerNum].avatar) {
     if (playerNum === gameState.currentPlayer) {
-        // 🎯 Current player → always show their avatar on their own client
-        stopLogoCycleInElement(playerLogoEl);
-        playerLogoEl.src = playerData[playerNum].avatar;
-        playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-        playerLogoEl.classList.add('is-avatar');
-        document.getElementById(`player${playerNum}-team-name`).textContent =
-            `${playerData[playerNum].name} is ready to roll!`;
-
-    } else {
-        // 👀 Opponent’s slot
-        if (gameMode === 'multiplayer' && localPlayerNum !== gameState.currentPlayer) {
-            // On the opponent’s client → show cycling for the current player
-            startLogoCycleInElement(playerLogoEl, teams, 120);
-            playerLogoEl.classList.remove('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent =
-                `${playerData[playerNum].name} is rolling...`;
-        } else {
-            // On the current player’s own client → just show the opponent’s avatar
+        // 🎯 Current player: 
+        // On THEIR screen → avatar, but on opponent’s screen → cycle.
+        if (localPlayerNum === playerNum) {
+            // My own slot, I haven’t rolled yet → avatar
             stopLogoCycleInElement(playerLogoEl);
             playerLogoEl.src = playerData[playerNum].avatar;
             playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
             playerLogoEl.classList.add('is-avatar');
             document.getElementById(`player${playerNum}-team-name`).textContent =
                 `${playerData[playerNum].name} is ready to roll!`;
+        } else {
+            // Opponent viewing currentPlayer’s slot → cycle logos
+            startLogoCycleInElement(playerLogoEl, teams, 120);
+            playerLogoEl.classList.remove('is-avatar');
+            document.getElementById(`player${playerNum}-team-name`).textContent =
+                `${playerData[playerNum].name} is rolling...`;
         }
+    } else {
+        // Non-current player at start → just show their avatar
+        stopLogoCycleInElement(playerLogoEl);
+        playerLogoEl.src = playerData[playerNum].avatar;
+        playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+        playerLogoEl.classList.add('is-avatar');
+        document.getElementById(`player${playerNum}-team-name`).textContent =
+            `${playerData[playerNum].name} is ready to roll!`;
     }
 
 } else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {

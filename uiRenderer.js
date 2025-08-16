@@ -81,12 +81,12 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     const hasDraftedFromCurrentTeam = playerDataForPlayer.draftedPlayers.length > 0;
     
     // Hide buttons if roster is full OR if a team is selected and waiting for a draft pick.
-    if (rosterIsFull || (teamIsSelected && !hasDraftedFromCurrentTeam)) {
-        teamSelectionEl.style.display = 'none';
-    } else {
+   // if (rosterIsFull || (teamIsSelected && !hasDraftedFromCurrentTeam)) {
+     //   teamSelectionEl.style.display = 'none';
+    //} else {
         // Show buttons if the roster is NOT full AND (either no team is selected yet, or a player has been drafted).
-        teamSelectionEl.style.display = 'flex';
-    }
+      //  teamSelectionEl.style.display = 'flex';
+    //} 
 
     // Logic to toggle between inline NFL roster and fantasy roster display
     const hasTeamSelected = playerDataForPlayer.team !== null;

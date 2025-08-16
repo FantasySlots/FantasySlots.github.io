@@ -445,16 +445,21 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
 
     playerData[playerNum].draftedPlayers.push({ id: playerObj.id, assignedSlot: slotId });
 
-// ✅ NEW: Ensure their "team" object is set so logo displays in frame
-if (playerObj.team) {
-    playerData[playerNum].team = {
-        id: playerObj.team.id,
-        name: playerObj.team.displayName || playerObj.team.name,
-        abbreviation: playerObj.team.abbreviation,
-        logo: playerObj.team.logo,
-        rosterData: playerData[playerNum].team?.rosterData || null // keep if already loaded
-    };
-}
+// Store the drafted team so updateLayout shows it in the frame
+playerData[playerNum].team = {
+    id: randomTeam.id,
+    name: randomTeam.name,
+    abbreviation: randomTeam.abbreviation,
+    logo: randomTeam.logo
+};
+
+
+// Mark this player as drafted (so logic stays consistent with draftPlayer)
+playerData[playerNum].draftedPlayers.push({
+    id: chosenPlayer.id,
+    assignedSlot: availableSlot
+});
+
 
 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 

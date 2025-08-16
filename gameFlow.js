@@ -21,7 +21,7 @@ export async function selectTeam(playerNum) {
         return;
     }
     // If roster is full, prevent new team selection or auto-draft.
-    if (isFantasyRosterFull(playerNum)) {
+    if (isFantasyRosterFull()) {
         alert('Your fantasy roster is full! You cannot draft more players.');
         return;
     }
@@ -123,7 +123,7 @@ export async function autoDraft(playerNum) {
         alert('Please enter your name first!');
         return;
     }
-    if (isFantasyRosterFull(playerNum)) {
+    if (isFantasyRosterFull()) {
         alert('Your fantasy roster is already full!');
         return;
     }

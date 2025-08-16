@@ -213,18 +213,26 @@ export function displayDraftInterface(
                 } else if (!canDraftFromCurrentTeam || isAlreadyInFantasyRoster) {
                     playerDiv.classList.add('player-draft-card--drafted');
                     draftActionText.textContent = isAlreadyInFantasyRoster ? 'Drafted' : 'Drafted (1/turn)';
-                    // No event listener for drafted cards
-                } else {
-                    playerDiv.classList.add('player-draft-card--available');
-                    // Attach event listener only to the "Draft" text element
-                    draftActionText.addEventListener('click', (event) => {
-                        event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
-                        draftPlayerCallback(playerNum, player, position);
-                    });
-                    draftActionText.textContent = 'Draft';
-                }
-                
-                playersList.appendChild(playerDiv);
+// No event listener for drafted cards
+} else {
+    playerDiv.classList.add('player-draft-card--available');
+    // Attach event listener only to the "Draft" text element
+    draftActionText.addEventListener('click', (event) => {
+        event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
+        draftPlayerCallback(playerNum, player, position);
+
+        // ✅ Re-show "Roll your team" after pick
+        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+        if (teamSelectionEl) {
+            teamSelectionEl.style.display = 'block';
+        }
+    });
+    draftActionText.textContent = 'Draft';
+}
+
+playersList.appendChild(playerDiv);
+
             });
             
             positionDiv.appendChild(playersList);
@@ -281,15 +289,23 @@ export function displayDraftInterface(
         defOption.classList.add('player-draft-card--drafted');
         draftActionTextDef.textContent = isDefAlreadyInFantasyRoster ? 'Drafted' : 'Drafted (1/turn)';
         // No event listener for drafted cards
-    } else {
-        defOption.classList.add('player-draft-card--available');
-        // Attach event listener only to the "Draft" text element
-        draftActionTextDef.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
-            draftPlayerCallback(playerNum, defPlayer, 'DEF');
-        });
-        draftActionTextDef.textContent = 'Draft';
-    }
+   } else {
+    defOption.classList.add('player-draft-card--available');
+    // Attach event listener only to the "Draft" text element
+    draftActionTextDef.addEventListener('click', (event) => {
+        event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
+        draftPlayerCallback(playerNum, defPlayer, 'DEF');
+
+        // ✅ Re-show "Roll your team" after pick
+        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+        if (teamSelectionEl) {
+            teamSelectionEl.style.display = 'block';
+        }
+    });
+    draftActionTextDef.textContent = 'Draft';
+}
+
     
     defDiv.appendChild(defOption);
     draftContainer.appendChild(defDiv);

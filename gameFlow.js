@@ -117,32 +117,6 @@ export async function autoDraft(playerNum) {
         alert("It's not your turn!");
         return;
     }
-     // Mark them as rolling
-    playerData[playerNum].isAutoDrafting = true;
-    updateLayout(false); // refresh so logos cycle
-
-    // ... existing autoDraft logic ...
-
-    if (chosenPlayer && availableSlot) {
-        // Assign player as normal...
-
-        // ✅ Clear flag once done
-        playerData[playerNum].isAutoDrafting = false;
-
-        setTimeout(() => {
-            hideTeamAnimationOverlay();
-            updateLayout(true);
-        }, 1500);
-    } else {
-        // Fail case, clear flag too
-        playerData[playerNum].isAutoDrafting = false;
-
-        setTimeout(() => {
-            hideTeamAnimationOverlay();
-            updateLayout(false);
-        }, 1500);
-    }
-
     if (!playerData[playerNum].name) {
         alert('Please enter your name first!');
         return;

@@ -259,19 +259,25 @@ async function setupMultiplayerGame() {
     });
 
 onValue(gameRef, (snapshot) => {
-    if (isSyncing) {
-        console.log("[SYNC RECEIVE] Ignored because isSyncing=true");
-        return;
-    }
-
     const remoteData = snapshot.val();
-    if (remoteData) {
-        console.log("[SYNC RECEIVE] Data from Firebase:", remoteData);
+    if (!remoteData) return;
+
+    if (isSyncing) {
+        // Still update the UI so you can see your own change reflected,
+        // but skip re-triggering game actions
+        console.log("[SYNC RECEIVE] Updating UI even though isSyncing=true");
         Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
         updateLocalPlayerData(remoteData.playerData);
         updateLayout(remoteData.players);
+        return;
     }
+
+    console.log("[SYNC RECEIVE] Data from Firebase:", remoteData);
+    Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
+    updateLocalPlayerData(remoteData.playerData);
+    updateLayout(remoteData.players);
 });
+
 
     
     // Wrap actions with Firebase sync logic

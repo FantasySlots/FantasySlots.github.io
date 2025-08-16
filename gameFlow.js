@@ -295,14 +295,15 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
+    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(
+        slotPlayer => slotPlayer && slotPlayer.id === player.id
+    );
     if (isAlreadyInFantasyRoster) {
         console.warn(`Player ${player.displayName} is already in Player ${playerNum}'s fantasy roster.`);
         alert(`${player.displayName} is already in your fantasy roster!`);
         return;
     }
 
-    // This check ensures only one player is drafted per 'team spin'
     if (playerData[playerNum].draftedPlayers.length > 0) {
         console.warn(`Player ${playerNum} has already drafted a player from this team. draftedPlayers.length: ${playerData[playerNum].draftedPlayers.length}`);
         alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
@@ -318,7 +319,14 @@ export function draftPlayer(playerNum, player, originalPosition) {
     const flexPositions = ['RB', 'WR', 'TE'];
 
     if (flexPositions.includes(originalPosition)) {
-        showSlotSelectionModal(player, playerNum, originalPosition, playerData[playerNum], assignPlayerToSlot, hideSlotSelectionModal);
+        showSlotSelectionModal(
+            player,
+            playerNum,
+            originalPosition,
+            playerData[playerNum],
+            assignPlayerToSlot,
+            hideSlotSelectionModal
+        );
     } else {
         let targetSlot;
         if (originalPosition === 'QB') targetSlot = 'QB';
@@ -326,6 +334,15 @@ export function draftPlayer(playerNum, player, originalPosition) {
         else if (originalPosition === 'DEF') targetSlot = 'DEF';
 
         if (targetSlot) {
+            // 🚨 sanitize team before persisting to Firebase
+            if (playerData[playerNum].team && playerData[playerNum].team.rosterData) {
+                playerData[playerNum].team = {
+                    id: playerData[playerNum].team.id,
+                    name: playerData[playerNum].team.name,
+                    abbreviation: playerData[playerNum].team.abbreviation
+                };
+            }
+
             assignPlayerToSlot(playerNum, player, targetSlot);
         } else {
             console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);

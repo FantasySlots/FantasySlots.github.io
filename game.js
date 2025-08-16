@@ -477,40 +477,67 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
             }
 
             // Update team logo / avatar and team name
-            if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-                // If roster is full (e.g., after auto-draft), show player's avatar
-                playerLogoEl.src = playerData[playerNum].avatar;
-                playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-                playerLogoEl.classList.add('is-avatar'); // Add class to invert colors
-                document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
-            } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-                // If a team is selected (for manual drafting or just rolled a team), display team logo
-                playerLogoEl.src = playerData[playerNum].team.logo;
-                playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-                playerLogoEl.classList.remove('is-avatar'); // Remove class if it's a team logo
-                document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
-                
-                if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
-                    const otherPlayerNum = playerNum === 1 ? 2 : 1;
-                    const opponentData = playerData[otherPlayerNum];
-                    displayDraftInterface(playerNum, playerData[playerNum].team.rosterData, playerData[playerNum], opponentData, isFantasyRosterFull, isPlayerPositionUndraftable, draftPlayer);
-                } else {
-                    const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
-                    inlineRosterEl.innerHTML = ''; 
-                }
+            // --- Team Logo / Avatar / Team Name ---
+if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
+    // Roster full → show avatar
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        `${playerData[playerNum].name}'s Roster`;
 
-            } else if (playerData[playerNum].avatar) {
-                // If no team is selected but player has an avatar, show avatar and "Select your team!"
-                playerLogoEl.src = playerData[playerNum].avatar;
-                playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-                playerLogoEl.classList.add('is-avatar');
-                document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
-            } else { // Fallback if no avatar or team
-                playerLogoEl.src = '';
-                playerLogoEl.alt = '';
-                playerLogoEl.classList.remove('is-avatar');
-                document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
-            }
+} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
+    // Team selected → show team logo
+    stopLogoCycleInElement(playerLogoEl); // in case it was animating before
+    playerLogoEl.src = playerData[playerNum].team.logo;
+    playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        playerData[playerNum].team.name;
+
+    if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
+        const otherPlayerNum = playerNum === 1 ? 2 : 1;
+        const opponentData = playerData[otherPlayerNum];
+        displayDraftInterface(
+            playerNum,
+            playerData[playerNum].team.rosterData,
+            playerData[playerNum],
+            opponentData,
+            isFantasyRosterFull,
+            isPlayerPositionUndraftable,
+            draftPlayer
+        );
+    } else {
+        const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+        inlineRosterEl.innerHTML = '';
+    }
+
+} else if (playerData[playerNum].avatar) {
+    const isMyTurn = playerNum === gameState.currentPlayer;
+
+    if (isMyTurn) {
+        // If it's THIS player's turn, show avatar + "Select your team!"
+        stopLogoCycleInElement(playerLogoEl);
+        playerLogoEl.src = playerData[playerNum].avatar;
+        playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+        playerLogoEl.classList.add('is-avatar');
+        document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+    } else {
+        // If it's NOT this player's turn, show cycling logos + "[Name] is picking..."
+        startLogoCycleInElement(playerLogoEl, teams, 120);
+        playerLogoEl.classList.remove('is-avatar');
+        document.getElementById(`player${playerNum}-team-name`).textContent =
+            `${playerData[playerNum].name || 'Opponent'} is picking...`;
+    }
+
+} else {
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = '';
+    playerLogoEl.alt = '';
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+}
+
             
             // Render fantasy roster always if name is confirmed, it will show as empty slots if not filled
             displayFantasyRoster(playerNum, playerData[playerNum], teams, isCurrentPlayerRosterFull, openPlayerStatsModalCaller);

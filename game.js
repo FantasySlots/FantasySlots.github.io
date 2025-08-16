@@ -482,46 +482,45 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
     const isTheirTurn = playerNum === gameState.currentPlayer;
-    const hasRolledButNotPicked = playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0;
+    const hasRolledButNotPicked =
+        playerData[playerNum].team.rosterData &&
+        playerData[playerNum].draftedPlayers.length === 0;
 
-    if (isTheirTurn) {
-        // 👤 It's this player's turn — show their team logo + draft interface
+    if (isTheirTurn && hasRolledButNotPicked) {
+        // 👤 Roller’s own view → show team logo + draft interface
         stopLogoCycleInElement(playerLogoEl);
         playerLogoEl.src = playerData[playerNum].team.logo;
         playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
         playerLogoEl.classList.remove('is-avatar');
-        document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
+        document.getElementById(`player${playerNum}-team-name`).textContent =
+            playerData[playerNum].team.name;
 
-        if (hasRolledButNotPicked) {
-            const otherPlayerNum = playerNum === 1 ? 2 : 1;
-            const opponentData = playerData[otherPlayerNum];
-            displayDraftInterface(
-                playerNum,
-                playerData[playerNum].team.rosterData,
-                playerData[playerNum],
-                opponentData,
-                isFantasyRosterFull,
-                isPlayerPositionUndraftable,
-                draftPlayer
-            );
-        } else {
-            const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
-            inlineRosterEl.innerHTML = '';
-        }
+        const otherPlayerNum = playerNum === 1 ? 2 : 1;
+        const opponentData = playerData[otherPlayerNum];
+        displayDraftInterface(
+            playerNum,
+            playerData[playerNum].team.rosterData,
+            playerData[playerNum],
+            opponentData,
+            isFantasyRosterFull,
+            isPlayerPositionUndraftable,
+            draftPlayer
+        );
 
-    } else if (hasRolledButNotPicked) {
-        // 👀 Opponent sees this: show cycling logos until they pick
+    } else if (!isTheirTurn && hasRolledButNotPicked) {
+        // 👀 Opponent’s view → show cycling animation
         startLogoCycleInElement(playerLogoEl, teams, 120);
         playerLogoEl.classList.remove('is-avatar');
         document.getElementById(`player${playerNum}-team-name`).textContent =
             `${playerData[playerNum].name} is picking...`;
 
     } else {
-        // 🏈 After they pick, show their actual team logo
+        // 🏈 After they pick → show team logo
         stopLogoCycleInElement(playerLogoEl);
         playerLogoEl.src = playerData[playerNum].team.logo;
         playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
@@ -538,14 +537,16 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        'Select your team!';
 
 } else {
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = '';
     playerLogoEl.alt = '';
     playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        'Select your team!';
 }
 
 

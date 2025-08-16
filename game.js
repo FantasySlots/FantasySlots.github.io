@@ -470,11 +470,22 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         }
 
         // --- Disable Non-local Controls in Multiplayer ---
-        if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
-            playerSection.style.pointerEvents = 'none';
-        } else {
-            playerSection.style.pointerEvents = 'auto';
-        }
+        if (gameMode === 'multiplayer') {
+    const isMyTurn = playerNum === gameState.currentPlayer;
+    const isLocal = playerNum === localPlayerNum;
+
+    if (!isMyTurn || !isLocal) {
+        // ❌ Either not your turn OR not your section → no clicks
+        playerSection.style.pointerEvents = 'none';
+    } else {
+        // ✅ Only the current local player’s section is interactive
+        playerSection.style.pointerEvents = 'auto';
+    }
+} else {
+    // Local 2-player game: allow interaction always
+    playerSection.style.pointerEvents = 'auto';
+}
+
 
         // --- Team Logo / Avatar / Team Name ---
         if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {

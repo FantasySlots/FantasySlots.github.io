@@ -20,7 +20,7 @@ import { teams } from './data.js';
 
 // NEW: Import Firebase
 import { db } from './firebase.js';
-import { ref, onValue, set, get, update, onDisconnect, serverTimestamp } from "firebase/database";
+
 
 // NEW: Global variables for multiplayer
 let gameMode = 'local';

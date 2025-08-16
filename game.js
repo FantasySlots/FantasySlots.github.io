@@ -526,7 +526,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
         document.getElementById(`player${playerNum}-team-name`).textContent =
             `${playerData[playerNum].name} is ready to roll!`;
     }
-}
+
 
 } else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     // ✅ Roster complete → avatar frame

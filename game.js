@@ -476,34 +476,52 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
             playerSection.style.pointerEvents = 'auto';
         }
 
-   // --- Team Logo / Avatar / Team Name ---
+// --- Team Logo / Avatar / Team Name ---
 if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
+    stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
-        // They just rolled, haven’t picked yet → show cycling animation in the logo spot
+    const isTheirTurn = playerNum === gameState.currentPlayer;
+    const hasRolledButNotPicked = playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0;
+
+    if (isTheirTurn) {
+        // 👤 It's this player's turn — show their team logo + draft interface
+        stopLogoCycleInElement(playerLogoEl);
+        playerLogoEl.src = playerData[playerNum].team.logo;
+        playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+        playerLogoEl.classList.remove('is-avatar');
+        document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
+
+        if (hasRolledButNotPicked) {
+            const otherPlayerNum = playerNum === 1 ? 2 : 1;
+            const opponentData = playerData[otherPlayerNum];
+            displayDraftInterface(
+                playerNum,
+                playerData[playerNum].team.rosterData,
+                playerData[playerNum],
+                opponentData,
+                isFantasyRosterFull,
+                isPlayerPositionUndraftable,
+                draftPlayer
+            );
+        } else {
+            const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+            inlineRosterEl.innerHTML = '';
+        }
+
+    } else if (hasRolledButNotPicked) {
+        // 👀 Opponent sees this: show cycling logos until they pick
         startLogoCycleInElement(playerLogoEl, teams, 120);
         playerLogoEl.classList.remove('is-avatar');
         document.getElementById(`player${playerNum}-team-name`).textContent =
             `${playerData[playerNum].name} is picking...`;
 
-        const otherPlayerNum = playerNum === 1 ? 2 : 1;
-        const opponentData = playerData[otherPlayerNum];
-        displayDraftInterface(
-            playerNum,
-            playerData[playerNum].team.rosterData,
-            playerData[playerNum],
-            opponentData,
-            isFantasyRosterFull,
-            isPlayerPositionUndraftable,
-            draftPlayer
-        );
     } else {
-        // Once they draft (or if no rosterData), stop animation and show the actual team logo
+        // 🏈 After they pick, show their actual team logo
         stopLogoCycleInElement(playerLogoEl);
         playerLogoEl.src = playerData[playerNum].team.logo;
         playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
@@ -516,7 +534,6 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     }
 
 } else if (playerData[playerNum].avatar) {
-    // Default idle state (no team yet)
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -524,7 +541,6 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
     document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
 
 } else {
-    // Truly empty fallback
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = '';
     playerLogoEl.alt = '';

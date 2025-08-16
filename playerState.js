@@ -41,15 +41,14 @@ export const playerData = {
 export function updateLocalPlayerData(remotePlayerData) {
     if (!remotePlayerData) return;
 
-    // Firebase can sometimes return an array with null at index 0
-    // so we check for keys '1' and '2' specifically.
     if (remotePlayerData['1']) {
-        Object.assign(playerData[1], JSON.parse(JSON.stringify(remotePlayerData['1'])));
+        playerData[1] = JSON.parse(JSON.stringify(remotePlayerData['1']));
     }
     if (remotePlayerData['2']) {
-        Object.assign(playerData[2], JSON.parse(JSON.stringify(remotePlayerData['2'])));
+        playerData[2] = JSON.parse(JSON.stringify(remotePlayerData['2']));
     }
 }
+
 
 /**
  * NEW: Switches the current player turn.

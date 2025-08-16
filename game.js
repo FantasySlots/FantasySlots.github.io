@@ -560,14 +560,14 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
         draftPlayer
       );
     } else {
-      // 👀 Opponent viewing current player's slot → show cycling animation
+      // 👀 Opponent viewing current player's slot → show cycling
       startLogoCycleInElement(playerLogoEl, teams, 120);
       playerLogoEl.classList.remove('is-avatar');
       document.getElementById(`player${playerNum}-team-name`).textContent =
         `${playerData[playerNum].name} is picking...`;
     }
   } else {
-    // Not the current player → stay on avatar
+    // ❌ Not my turn → don't cycle yet, just show avatar until turn switches
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;

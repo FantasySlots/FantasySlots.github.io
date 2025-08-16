@@ -76,16 +76,17 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     // NEW: Logic to show/hide team selection buttons
     // The buttons should be hidden if a team is selected AND no player has been drafted from it yet.
     // This forces the user to draft from the currently displayed team roster.
-    const rosterIsFullForBoth = isFantasyRosterFullFn(); // Checks both players
-
-if (rosterIsFullForBoth) {
-    // Hide if both players have a full roster
-    teamSelectionEl.style.display = 'none';
-} else {
-    // Always show otherwise
-    teamSelectionEl.style.display = 'flex';
-}
-
+    const rosterIsFull = isFantasyRosterFullFn(playerNum);
+    const teamIsSelected = playerDataForPlayer.team !== null && playerDataForPlayer.team.rosterData;
+    const hasDraftedFromCurrentTeam = playerDataForPlayer.draftedPlayers.length > 0;
+    
+    // Hide buttons if roster is full OR if a team is selected and waiting for a draft pick.
+    if (rosterIsFull || (teamIsSelected && !hasDraftedFromCurrentTeam)) {
+        teamSelectionEl.style.display = 'none';
+    } else {
+        // Show buttons if the roster is NOT full AND (either no team is selected yet, or a player has been drafted).
+        teamSelectionEl.style.display = 'flex';
+    }
 
     // Logic to toggle between inline NFL roster and fantasy roster display
     const hasTeamSelected = playerDataForPlayer.team !== null;
@@ -145,7 +146,7 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
     // NEW: Create a set of opponent's drafted player IDs for quick lookup.
     const opponentDraftedIds = new Set(Object.values(opponentData.rosterSlots).filter(p => p).map(p => p.id));
     const canDraftFromCurrentTeam = playerDataForPlayer.draftedPlayers.length === 0;
-    const rosterIsFull = isFantasyRosterFullFn();
+    const rosterIsFull = isFantasyRosterFullFn(playerNum);
 
     const positionOrder = ['QB', 'RB', 'WR', 'TE', 'K'];
     positionOrder.forEach(position => {

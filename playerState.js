@@ -85,17 +85,15 @@ export function resetGameState() {
  * @param {number} playerNum - The player number (1 or 2).
  * @returns {boolean} True if the roster is full, false otherwise.
  */
-export function isFantasyRosterFull() {
+export function isFantasyRosterFull(playerNum) {
+    // Add a guard to prevent errors if playerData for the player or its rosterSlots doesn't exist yet.
+    if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
+        return false;
+    }
+    const roster = playerData[playerNum].rosterSlots;
     const requiredSlots = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'Flex', 'DEF', 'K'];
-
-    const isFull = (pNum) =>
-        playerData[pNum] &&
-        playerData[pNum].rosterSlots &&
-        requiredSlots.every(slot => playerData[pNum].rosterSlots[slot] !== null);
-
-    return isFull(1) && isFull(2);
+    return requiredSlots.every(slot => roster[slot] !== null);
 }
-
 
 /**
  * Checks if a player's fantasy roster has any available slot for a given position type.

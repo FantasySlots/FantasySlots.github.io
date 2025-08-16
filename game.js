@@ -233,11 +233,39 @@ if (localPlayerNum === 1) {
     playerRef = null;
     const spectatorsRef = ref(db, `games/${roomId}/spectators`);
     const newSpectatorRef = push(spectatorsRef);
-    await set(newSpectatorRef, { clientId, connected: true, lastSeen: serverTimestamp() });
+    await set(newSpectatorRef, {
+        clientId,
+        connected: true,
+        lastSeen: serverTimestamp()
+    });
     await onDisconnect(newSpectatorRef).update({ connected: false });
 
     console.log("You are a Spectator");
+
+    // 🔒 Disable all player controls for spectators
+    [
+        'player1-name-confirm-btn',
+        'player1-select-team-btn',
+        'player1-auto-draft-btn',
+        'player1-reset-btn',
+        'player2-name-confirm-btn',
+        'player2-select-team-btn',
+        'player2-auto-draft-btn',
+        'player2-reset-btn'
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.disabled = true;
+            el.style.opacity = "0.5";   // visually indicate disabled
+            el.style.pointerEvents = "none";
+        }
+    });
+
+    // Maybe also hide spectator’s own share link since they can’t host
+    const shareContainer = document.getElementById('share-link-container');
+    if (shareContainer) shareContainer.style.display = 'none';
 }
+
 
     
     // Update share link UI

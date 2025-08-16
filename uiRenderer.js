@@ -229,12 +229,13 @@ if (teamSelectionEl) {
         event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
         draftPlayerCallback(playerNum, player, position);
 
-        // ✅ Re-show "Roll your team" after pick
-        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-        if (teamSelectionEl) {
-            teamSelectionEl.style.display = 'block';
-        }
+       // ✅ Re-show "Roll your team" after pick, unless roster is full
+const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+if (teamSelectionEl && !isFantasyRosterFullFn(playerNum)) {
+    teamSelectionEl.style.display = 'block';
+}
+
     });
     draftActionText.textContent = 'Draft';
 }
@@ -304,12 +305,13 @@ playersList.appendChild(playerDiv);
         event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
         draftPlayerCallback(playerNum, defPlayer, 'DEF');
 
-        // ✅ Re-show "Roll your team" after pick
-        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-        if (teamSelectionEl) {
-            teamSelectionEl.style.display = 'block';
-        }
+       // ✅ Re-show "Roll your team" after pick, unless roster is full
+const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+if (teamSelectionEl && !isFantasyRosterFullFn(playerNum)) {
+    teamSelectionEl.style.display = 'block';
+}
+
     });
     draftActionTextDef.textContent = 'Draft';
 }

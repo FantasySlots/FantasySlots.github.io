@@ -488,14 +488,22 @@ if (gameMode === 'multiplayer') {
 }
 
 // --- Team Logo / Avatar / Team Name ---
+// Special case: very start of drafting → show avatars, not cycle
 const noTeamsRolledYet = (
     gameState.phase === 'DRAFTING' &&
     !playerData[1].team &&
     !playerData[2].team
 );
 
+// Special case: current player rolled but hasn't drafted yet
+const isTheirTurn = playerNum === gameState.currentPlayer;
+const hasRolledButNotPicked =
+    playerData[gameState.currentPlayer]?.team &&
+    playerData[gameState.currentPlayer]?.team.rosterData &&
+    playerData[gameState.currentPlayer]?.draftedPlayers.length === 0;
+
 if (noTeamsRolledYet && playerData[playerNum].avatar) {
-    // 👤 At very start: show avatars only
+    // 👤 Before the very first roll → avatars only
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -503,25 +511,16 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
     document.getElementById(`player${playerNum}-team-name`).textContent =
         `${playerData[playerNum].name} is ready to roll!`;
 
-} else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-    // ✅ When roster is full, show avatar
-    stopLogoCycleInElement(playerLogoEl);
-    playerLogoEl.src = playerData[playerNum].avatar;
-    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-    playerLogoEl.classList.add('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        `${playerData[playerNum].name}'s Roster`;
+} else if (hasRolledButNotPicked) {
+    if (isTheirTurn) {
+        // 🎲 Current player sees their rolled team + draft interface
+        stopLogoCycleInElement(playerLogoEl);
+        playerLogoEl.src = playerData[playerNum].team.logo;
+        playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+        playerLogoEl.classList.remove('is-avatar');
+        document.getElementById(`player${playerNum}-team-name`).textContent =
+            playerData[playerNum].team.name;
 
-} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // 🏈 Team locked in → show their team logo
-    stopLogoCycleInElement(playerLogoEl);
-    playerLogoEl.src = playerData[playerNum].team.logo;
-    playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-    playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        playerData[playerNum].team.name;
-
-    if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
         const otherPlayerNum = playerNum === 1 ? 2 : 1;
         const opponentData = playerData[otherPlayerNum];
         displayDraftInterface(
@@ -534,30 +533,42 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
             draftPlayer
         );
     } else {
-        const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
-        inlineRosterEl.innerHTML = '';
-    }
-
-} else {
-    const isTheirTurn = playerNum === gameState.currentPlayer;
-
-    if (isTheirTurn) {
-        // 🎲 It's my own turn but I haven't rolled yet → show my avatar, not cycle
-        if (playerData[playerNum].avatar) {
-            stopLogoCycleInElement(playerLogoEl);
-            playerLogoEl.src = playerData[playerNum].avatar;
-            playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-            playerLogoEl.classList.add('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent =
-                'Roll your team!';
-        }
-    } else {
-        // 👀 Opponent is rolling → show THEIR avatar cycling
+        // 👀 Opponent sees current player's avatar cycling
         startLogoCycleInElement(playerLogoEl, teams, 120);
         playerLogoEl.classList.remove('is-avatar');
         document.getElementById(`player${playerNum}-team-name`).textContent =
-            `${playerData[playerNum].name} is rolling...`;
+            `${playerData[playerNum].name} is picking...`;
     }
+
+} else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
+    // ✅ Roster full → avatar
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        `${playerData[playerNum].name}'s Roster`;
+
+} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
+    // 🏈 Team locked in → show logo
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = playerData[playerNum].team.logo;
+    playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        playerData[playerNum].team.name;
+
+    const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+    inlineRosterEl.innerHTML = '';
+
+} else {
+    // Default → cycle while rolling
+    startLogoCycleInElement(playerLogoEl, teams, 120);
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        (gameState.currentPlayer === playerNum)
+            ? 'Rolling for a team...'
+            : `${playerData[playerNum].name} is rolling...`;
 }
 
 

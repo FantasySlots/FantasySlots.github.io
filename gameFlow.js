@@ -257,13 +257,11 @@ export async function autoDraft(playerNum) {
 
                 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
-    setTimeout(async () => {
-        hideTeamAnimationOverlay();
-        updateLayout(false); // update visuals but don't switch turn yet
-        // now sync this player's branch, then switch turn
-        await syncGameState(playerNum);
-        switchTurn(syncGameState, playerNum);
-    }, 1500);
+    setTimeout(() => {
+  hideTeamAnimationOverlay();
+  updateLayout(true); // wrapper will handle syncing
+}, 1500);
+
  // Show drafted player for a bit
             } else {
                  showTeamAnimationOverlay(`No draftable player found! Try again.`);
@@ -403,10 +401,8 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
     hideSlotSelectionModal();
 
 // Update visuals immediately (don’t switch turn yet)
-updateLayout(false);
+updateLayout(true);
 
-// then sync this player's branch, and switch turn
-await syncGameState(playerNum);
-switchTurn(syncGameState, playerNum);
+
 
 }

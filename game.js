@@ -29,27 +29,30 @@ let playerRef = null;
 let isSyncing = false; // Flag to prevent feedback loops
 
 /**
- * NEW: Sync local state with Firebase.
- * This function is the single point of truth for updating the remote state.
+ * NEW: Centralized function to sync the entire game state with Firebase.
+ * This is now the single point of truth for updating the remote state.
  */
-async function syncWithFirebase() {
-    if (gameMode !== 'multiplayer' || !gameRef) return;
-    
-    isSyncing = true; // Prevent onValue listener from re-triggering actions
-    console.log("Syncing to Firebase:", { gameState, playerData });
-    try {
-        // Use update instead of set to avoid erasing the 'players' node.
-        await update(gameRef, {
-            gameState: { ...gameState },
-            playerData: { ...playerData }
-        });
-    } catch (error) {
-        console.error("Firebase sync failed:", error);
-    } finally {
-        // Use a short timeout to ensure the write has time to propagate before we listen again
-        setTimeout(() => { isSyncing = false; }, 200);
-    }
+async function syncGameState() {
+  if (gameMode !== 'multiplayer' || !gameRef) return;
+
+  isSyncing = true;
+  console.log("SYNCING to Firebase:", { gameState, playerData });
+
+  try {
+    await update(gameRef, {
+      gameState: { ...gameState },
+      playerData: {
+        1: { ...playerData[1] },
+        2: { ...playerData[2] }
+      }
+    });
+  } catch (error) {
+    console.error("Firebase sync failed:", error);
+  } finally {
+    setTimeout(() => { isSyncing = false; }, 200);
+  }
 }
+
 
 /**
  * Utility function to open player stats modal, acting as a bridge.
@@ -115,27 +118,17 @@ function withFirebaseSync(actionFn) {
     return async (...args) => {
         const playerNum = args[0]; // The player number the action is for (1 or 2)
 
-        if (gameMode === 'multiplayer') {
-            // Block actions for the other player's UI.
-            // A user should only be able to trigger actions for their own player number.
-            if (playerNum !== localPlayerNum) {
-                // This can happen if the UI isn't fully disabled, so it's a good safeguard.
-                console.warn(`Action for Player ${playerNum} blocked because you are Player ${localPlayerNum}.`);
-                return;
-            }
-
-            // For drafting actions, also check if it's the current player's turn.
-            const isDraftingAction = ['selectTeam', 'autoDraft', 'draftPlayer', 'assignPlayerToSlot'].includes(actionFn.name);
-            if (isDraftingAction && localPlayerNum !== gameState.currentPlayer) {
-                alert("It's not your turn!");
-                return;
-            }
+        // Block actions if it's not the local player's turn to act in multiplayer
+        // This is the primary guard to prevent a player from controlling their opponent.
+        if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
+            console.warn(`Action for Player ${playerNum} blocked because you are Player ${localPlayerNum}.`);
+            return;
         }
-        
-        // If checks pass, execute the original action.
+
+        // Execute the original action.
         await actionFn(...args);
         // After the action modifies the local state, sync it to Firebase.
-        await syncWithFirebase();
+        await syncGameState();
     };
 }
 
@@ -197,19 +190,33 @@ async function setupMultiplayerGame() {
     const gameData = snapshot.val();
     const playersNode = gameData.players || {};
 
-    if (!playersNode.player1 || playersNode.player1.clientId === clientId) {
+    // Corrected Logic: The second player should only take slot 2 if slot 1 is filled by someone else.
+    if (!playersNode.player1) {
+        // Player 1 slot is open, take it.
         localPlayerNum = 1;
-        playerRef = ref(db, `games/${roomId}/players/player1`);
-        // Use update to avoid removing other player's presence
-        await update(ref(db, `games/${roomId}/players`), { player1: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
-    } else if (!playersNode.player2 || playersNode.player2.clientId === clientId) {
+    } else if (playersNode.player1.clientId === clientId) {
+        // This client is already Player 1 (reconnecting).
+        localPlayerNum = 1;
+    } else if (!playersNode.player2) {
+        // Player 1 is taken by someone else, and Player 2 is open. Take it.
         localPlayerNum = 2;
-        playerRef = ref(db, `games/${roomId}/players/player2`);
-        await update(ref(db, `games/${roomId}/players`), { player2: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
+    } else if (playersNode.player2.clientId === clientId) {
+        // This client is already Player 2 (reconnecting).
+        localPlayerNum = 2;
     } else {
+        // Both slots are taken by other clients.
         alert("This game room is full!");
         window.location.href = 'index.html';
         return;
+    }
+
+    // Now, set the playerRef and update Firebase based on the determined localPlayerNum
+    if (localPlayerNum === 1) {
+        playerRef = ref(db, `games/${roomId}/players/player1`);
+        await update(ref(db, `games/${roomId}/players`), { player1: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
+    } else { // localPlayerNum is 2
+        playerRef = ref(db, `games/${roomId}/players/player2`);
+        await update(ref(db, `games/${roomId}/players`), { player2: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
     }
     
     await onDisconnect(playerRef).update({ connected: false });
@@ -290,11 +297,11 @@ function initializeCommonListeners() {
     // Add click listener to avatar previews to open the avatar selection modal
     document.getElementById('player1-avatar-preview').addEventListener('click', () => {
         if (gameMode === 'multiplayer' && localPlayerNum !== 1) return;
-        showAvatarSelectionModal(1, playerData[1].avatar, AVATAR_SVGS, (pNum, avatarUrl) => gameMode === 'multiplayer' ? withFirebaseSync(selectAvatar)(pNum, avatarUrl) : selectAvatar(pNum, avatarUrl));
+        showAvatarSelectionModal(1, playerData[1].avatar, AVATAR_SVGS, (pNum, avatarUrl) => withFirebaseSync(selectAvatar)(pNum, avatarUrl));
     });
     document.getElementById('player2-avatar-preview').addEventListener('click', () => {
         if (gameMode === 'multiplayer' && localPlayerNum !== 2) return;
-        showAvatarSelectionModal(2, playerData[2].avatar, AVATAR_SVGS, (pNum, avatarUrl) => gameMode === 'multiplayer' ? withFirebaseSync(selectAvatar)(pNum, avatarUrl) : selectAvatar(pNum, avatarUrl));
+        showAvatarSelectionModal(2, playerData[2].avatar, AVATAR_SVGS, (pNum, avatarUrl) => withFirebaseSync(selectAvatar)(pNum, avatarUrl));
     });
 
     // Load saved data for both players and initialize playerData structure
@@ -368,7 +375,7 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
     if (shouldSwitchTurn && gameState.phase === 'DRAFTING') {
         // In multiplayer, only the current player can switch the turn
         if (gameMode !== 'multiplayer' || localPlayerNum === gameState.currentPlayer) {
-            switchTurn();
+            switchTurn(syncGameState); // Pass the sync function
         } else if (gameMode === 'local') {
             switchTurn();
         }
@@ -462,6 +469,13 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
                 }
             } else { // COMPLETE phase
                  playerSection.classList.remove('active-turn', 'inactive-turn');
+            }
+
+            // In multiplayer, explicitly disable controls for the non-local player's section
+            if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
+                playerSection.style.pointerEvents = 'none';
+            } else {
+                playerSection.style.pointerEvents = 'auto';
             }
 
             // Update team logo / avatar and team name

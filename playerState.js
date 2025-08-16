@@ -53,9 +53,13 @@ export function updateLocalPlayerData(remotePlayerData) {
 
 /**
  * NEW: Switches the current player turn.
+ * @param {function} [syncCallback] - An optional callback to sync state in multiplayer.
  */
-export function switchTurn() {
+export function switchTurn(syncCallback) {
     gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+    if (typeof syncCallback === 'function') {
+        syncCallback();
+    }
 }
 
 /**

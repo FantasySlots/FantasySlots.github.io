@@ -501,14 +501,21 @@ const hasRolledButNotPicked = (
 );
 
 if (noTeamsRolledYet && playerData[playerNum].avatar) {
-  // 🎬 Very start: always avatars only
-  stopLogoCycleInElement(playerLogoEl);
-  playerLogoEl.src = playerData[playerNum].avatar;
-  playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-  playerLogoEl.classList.add('is-avatar');
-  document.getElementById(`player${playerNum}-team-name`).textContent =
-    `${playerData[playerNum].name} is ready to roll!`;
-
+  if (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) {
+    // 👀 Opponent view → show cycling on the very first roll
+    startLogoCycleInElement(playerLogoEl, teams, 120);
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+      `${playerData[playerNum].name} is rolling...`;
+  } else {
+    // 🎬 Everyone else just sees avatars
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+      `${playerData[playerNum].name} is ready to roll!`;
+  }
 } else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
   // ✅ Roster complete → avatar frame
   stopLogoCycleInElement(playerLogoEl);

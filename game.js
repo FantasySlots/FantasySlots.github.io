@@ -32,18 +32,17 @@ let isSyncing = false; // Flag to prevent feedback loops
  * NEW: Centralized function to sync the entire game state with Firebase.
  * This is now the single point of truth for updating the remote state.
  */
-async function syncGameState() {
+async function syncGameState(playerNum) {
   if (gameMode !== 'multiplayer' || !gameRef) return;
 
   isSyncing = true;
-  console.log("SYNCING to Firebase:", { gameState, playerData });
+  console.log("SYNCING to Firebase:", { gameState, playerDataFor: playerNum });
 
   try {
     await update(gameRef, {
       gameState: { ...gameState },
-      playerData: {
-        1: { ...playerData[1] },
-        2: { ...playerData[2] }
+      [`playerData/${playerNum}`]: {
+        ...playerData[playerNum]
       }
     });
   } catch (error) {
@@ -52,6 +51,7 @@ async function syncGameState() {
     setTimeout(() => { isSyncing = false; }, 200);
   }
 }
+
 
 
 /**
@@ -115,21 +115,16 @@ function addPlayer2() {
  * @returns {function} A new function that calls the original and then syncs.
  */
 function withFirebaseSync(actionFn) {
-    return async (...args) => {
-        const playerNum = args[0]; // The player number the action is for (1 or 2)
+  return async (...args) => {
+    const playerNum = args[0];
+    if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
+      console.warn(`Action for Player ${playerNum} blocked because you are Player ${localPlayerNum}.`);
+      return;
+    }
 
-        // Block actions if it's not the local player's turn to act in multiplayer
-        // This is the primary guard to prevent a player from controlling their opponent.
-        if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
-            console.warn(`Action for Player ${playerNum} blocked because you are Player ${localPlayerNum}.`);
-            return;
-        }
-
-        // Execute the original action.
-        await actionFn(...args);
-        // After the action modifies the local state, sync it to Firebase.
-        await syncGameState();
-    };
+    await actionFn(...args);
+    await syncGameState(playerNum); // only sync that player’s data
+  };
 }
 
 /**

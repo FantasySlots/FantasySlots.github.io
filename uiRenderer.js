@@ -109,12 +109,28 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
 }
 
 // UI Function: Display draft interface (NFL Roster of a chosen team)
-export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlayer, opponentData, isFantasyRosterFullFn, isPlayerPositionUndraftableFn, draftPlayerCallback) {
+export function displayDraftInterface(
+    playerNum,
+    teamAthletes,
+    playerDataForPlayer,
+    opponentData,
+    isFantasyRosterFullFn,
+    isPlayerPositionUndraftableFn,
+    draftPlayerCallback
+) {
     const playerContentArea = document.getElementById(`player${playerNum}-content-area`);
     const draftContainer = getOrCreateChild(playerContentArea, 'inline-roster');
     draftContainer.innerHTML = ''; // Clear previous content before rendering new
 
+    // 🚫 Hide "Roll your team" button / team-selection while drafting
+    const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+    const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+    if (teamSelectionEl) {
+        teamSelectionEl.style.display = 'none';
+    }
+
     const allPlayers = teamAthletes.flatMap(positionGroup => positionGroup.items || []);
+
     
     // NEW: Add message if no players are found for this team
     if (allPlayers.length === 0) {

@@ -514,7 +514,7 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
 }
 
 
-        } else if (playerData[playerNum].avatar) {
+       else if (playerData[playerNum].avatar) {
             playerLogoEl.src = playerData[playerNum].avatar;
             playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
             playerLogoEl.classList.add('is-avatar');

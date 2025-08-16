@@ -430,13 +430,22 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
 
     playerData[playerNum].draftedPlayers.push({ id: playerObj.id, assignedSlot: slotId });
 
-    localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+// ✅ NEW: Ensure their "team" object is set so logo displays in frame
+if (playerObj.team) {
+    playerData[playerNum].team = {
+        id: playerObj.team.id,
+        name: playerObj.team.displayName || playerObj.team.name,
+        abbreviation: playerObj.team.abbreviation,
+        logo: playerObj.team.logo,
+        rosterData: playerData[playerNum].team?.rosterData || null // keep if already loaded
+    };
+}
 
-    hideSlotSelectionModal();
+localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+
+hideSlotSelectionModal();
 
 // Update visuals immediately (don’t switch turn yet)
 updateLayout(true);
-
-
 
 }

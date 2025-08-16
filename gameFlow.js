@@ -250,10 +250,20 @@ export async function autoDraft(playerNum) {
                     statsData: null
                 };
                 
-                // NEW: Ensure team and draftedPlayers are nullified after auto-draft
-                // This signals that the next turn requires a new "Roll Team" or another auto-draft.
-                playerData[playerNum].team = null;
-                playerData[playerNum].draftedPlayers = [];
+               // Store the drafted team so updateLayout shows it in the frame
+playerData[playerNum].team = {
+    id: chosenPlayer.team?.id || chosenPlayer.id.replace('DEF-', ''),
+    name: chosenPlayer.team?.name || chosenPlayer.displayName,
+    abbreviation: chosenPlayer.team?.abbreviation || chosenPlayer.originalPosition,
+    logo: chosenPlayer.headshot?.href || chosenPlayer.logo || null
+};
+
+// Mark this player as drafted (so logic stays consistent with draftPlayer)
+playerData[playerNum].draftedPlayers.push({
+    id: chosenPlayer.id,
+    assignedSlot: availableSlot
+});
+
 
                 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 

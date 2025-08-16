@@ -73,18 +73,23 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     // The visibility of teamDisplayEl is managed by game.js (confirmName, updateLayout)
     teamInfoEl.style.display = 'block'; // Make sure team info is visible
 
-    // NEW: Simplified logic — only hide buttons if roster is full
+    // NEW: Logic to show/hide team selection buttons
+    // The buttons should be hidden if a team is selected AND no player has been drafted from it yet.
+    // This forces the user to draft from the currently displayed team roster.
     const rosterIsFull = isFantasyRosterFullFn(playerNum);
-
-    if (rosterIsFull) {
+    const teamIsSelected = playerDataForPlayer.team !== null && playerDataForPlayer.team.rosterData;
+    const hasDraftedFromCurrentTeam = playerDataForPlayer.draftedPlayers.length > 0;
+    
+    // Hide buttons if roster is full OR if a team is selected and waiting for a draft pick.
+    if (rosterIsFull || (teamIsSelected && !hasDraftedFromCurrentTeam)) {
         teamSelectionEl.style.display = 'none';
     } else {
+        // Show buttons if the roster is NOT full AND (either no team is selected yet, or a player has been drafted).
         teamSelectionEl.style.display = 'flex';
     }
 
     // Logic to toggle between inline NFL roster and fantasy roster display
     const hasTeamSelected = playerDataForPlayer.team !== null;
-    const hasDraftedFromCurrentTeam = playerDataForPlayer.draftedPlayers.length > 0;
     const hasAnyDraftedPlayer = Object.values(playerDataForPlayer.rosterSlots).some(slot => slot !== null);
 
     if (hasTeamSelected && !hasDraftedFromCurrentTeam) {
@@ -102,6 +107,8 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
         fantasyRosterEl.style.display = 'none';
     }
 }
+
+
 // UI Function: Display draft interface (NFL Roster of a chosen team)
 export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlayer, opponentData, isFantasyRosterFullFn, isPlayerPositionUndraftableFn, draftPlayerCallback) {
     const playerContentArea = document.getElementById(`player${playerNum}-content-area`);

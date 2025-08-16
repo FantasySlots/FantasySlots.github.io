@@ -4,6 +4,7 @@
  */
 
 // Import from new modular files
+import { ref, set, update, onValue, get, onDisconnect, serverTimestamp, push } from "firebase/database";
 import { startLogoCycleInElement, stopLogoCycleInElement } from './uiAnimations.js';
 import { gameState, playerData, isFantasyRosterFull, isPlayerPositionUndraftable, switchTurn, setGamePhase, updateLocalPlayerData } from './playerState.js';
 import { getOrCreateChild, updatePlayerContentDisplay, displayDraftInterface, displayFantasyRoster, renderPlayerAvatar } from './uiRenderer.js';

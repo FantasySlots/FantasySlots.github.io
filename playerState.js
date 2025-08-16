@@ -46,18 +46,26 @@ export function updateLocalPlayerData(remotePlayerData) {
     TE: null, Flex: null, DEF: null, K: null
   };
 
-  if (remotePlayerData['1']) {
-    const p1 = JSON.parse(JSON.stringify(remotePlayerData['1']));
-    p1.rosterSlots = { ...defaultRoster, ...(p1.rosterSlots || {}) };
-    playerData[1] = p1;
+  function normalizePlayerData(raw) {
+    const parsed = JSON.parse(JSON.stringify(raw || {}));
+    return {
+      name: parsed.name || '',
+      avatar: parsed.avatar || null,
+      team: parsed.team ?? null,  // always defined, default null
+      draftedPlayers: parsed.draftedPlayers || [],
+      rosterSlots: { ...defaultRoster, ...(parsed.rosterSlots || {}) },
+      isSetupStarted: parsed.isSetupStarted || false
+    };
   }
 
+  if (remotePlayerData['1']) {
+    playerData[1] = normalizePlayerData(remotePlayerData['1']);
+  }
   if (remotePlayerData['2']) {
-    const p2 = JSON.parse(JSON.stringify(remotePlayerData['2']));
-    p2.rosterSlots = { ...defaultRoster, ...(p2.rosterSlots || {}) };
-    playerData[2] = p2;
+    playerData[2] = normalizePlayerData(remotePlayerData['2']);
   }
 }
+
 
 
 /**

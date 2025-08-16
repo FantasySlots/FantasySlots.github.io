@@ -234,15 +234,6 @@ export async function autoDraft(playerNum) {
             }
 
             if (chosenPlayer && availableSlot) {
-                               // Store the drafted team so updateLayout shows it in the frame
-// ✅ NEW: Ensure their "team" object is set so logo displays in frame
-// Attach the team reference so updateLayout can show the logo
-chosenPlayer.team = {
-    id: randomTeam.id,
-    name: randomTeam.name,
-    abbreviation: randomTeam.abbreviation,
-    logo: randomTeam.logo
-};
                  // Determine if the headshot is an avatar or a real photo
                  const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
                  const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
@@ -259,16 +250,10 @@ chosenPlayer.team = {
                     statsData: null
                 };
                 
-
-
-
-// ✅ NEW: Record drafted player
-playerData[playerNum].draftedPlayers.push({
-    id: chosenPlayer.id,
-    assignedSlot: availableSlot
-});
-
-
+                // NEW: Ensure team and draftedPlayers are nullified after auto-draft
+                // This signals that the next turn requires a new "Roll Team" or another auto-draft.
+                playerData[playerNum].team = null;
+                playerData[playerNum].draftedPlayers = [];
 
                 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
@@ -445,27 +430,13 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
 
     playerData[playerNum].draftedPlayers.push({ id: playerObj.id, assignedSlot: slotId });
 
-// Store the drafted team so updateLayout shows it in the frame
-playerData[playerNum].team = {
-    id: randomTeam.id,
-    name: randomTeam.name,
-    abbreviation: randomTeam.abbreviation,
-    logo: randomTeam.logo
-};
+    localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
-
-// Mark this player as drafted (so logic stays consistent with draftPlayer)
-playerData[playerNum].draftedPlayers.push({
-    id: chosenPlayer.id,
-    assignedSlot: availableSlot
-});
-
-
-localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
-
-hideSlotSelectionModal();
+    hideSlotSelectionModal();
 
 // Update visuals immediately (don’t switch turn yet)
 updateLayout(true);
+
+
 
 }

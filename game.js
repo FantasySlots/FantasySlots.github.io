@@ -516,6 +516,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is ready to roll!`;
   }
+
 } else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
   // ✅ Roster complete → avatar frame
   stopLogoCycleInElement(playerLogoEl);
@@ -569,8 +570,12 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
   inlineRosterEl.innerHTML = '';
 
 } else {
-  // 🔄 Default: show cycling ONLY if it’s the opponent’s turn
-  if (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) {
+  // 🔄 Default: either auto-drafting or rolling
+  if (
+    (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) ||
+    playerData[playerNum].isAutoDrafting
+  ) {
+    // Opponent view of current player OR they’re in auto-draft → cycle
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent =
@@ -585,8 +590,6 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
       `${playerData[playerNum].name} is waiting...`;
   }
 }
-
-
 
         // --- Roster + Display ---
         displayFantasyRoster(

@@ -209,19 +209,36 @@ async function setupMultiplayerGame() {
 
     console.log("Joined as spectator");
 }
-
-    // Now, set the playerRef and update Firebase based on the determined localPlayerNum
-    if (localPlayerNum === 1) {
-        playerRef = ref(db, `games/${roomId}/players/player1`);
-        await update(ref(db, `games/${roomId}/players`), { player1: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
-    } else { // localPlayerNum is 2
-        playerRef = ref(db, `games/${roomId}/players/player2`);
-        await update(ref(db, `games/${roomId}/players`), { player2: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
-    }
-    
+// Now, set the playerRef and update Firebase based on the determined localPlayerNum
+if (localPlayerNum === 1) {
+    playerRef = ref(db, `games/${roomId}/players/player1`);
+    await update(ref(db, `games/${roomId}/players`), {
+        player1: { clientId, connected: true, lastSeen: serverTimestamp() }
+    });
     await onDisconnect(playerRef).update({ connected: false });
 
-    console.log(`You are Player ${localPlayerNum}`);
+    console.log("You are Player 1");
+
+} else if (localPlayerNum === 2) {
+    playerRef = ref(db, `games/${roomId}/players/player2`);
+    await update(ref(db, `games/${roomId}/players`), {
+        player2: { clientId, connected: true, lastSeen: serverTimestamp() }
+    });
+    await onDisconnect(playerRef).update({ connected: false });
+
+    console.log("You are Player 2");
+
+} else {
+    // 🎥 Spectator (not Player 1 or 2)
+    playerRef = null;
+    const spectatorsRef = ref(db, `games/${roomId}/spectators`);
+    const newSpectatorRef = push(spectatorsRef);
+    await set(newSpectatorRef, { clientId, connected: true, lastSeen: serverTimestamp() });
+    await onDisconnect(newSpectatorRef).update({ connected: false });
+
+    console.log("You are a Spectator");
+}
+
     
     // Update share link UI
     document.getElementById('share-link-container').style.display = 'flex';

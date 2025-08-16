@@ -371,7 +371,8 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
     if (shouldSwitchTurn && gameState.phase === 'DRAFTING') {
         // In multiplayer, only the current player can switch the turn
         if (gameMode !== 'multiplayer' || localPlayerNum === gameState.currentPlayer) {
-            switchTurn(syncGameState); // Pass the sync function
+            switchTurn(syncGameState, localPlayerNum);
+ // Pass the sync function
         } else if (gameMode === 'local') {
             switchTurn();
         }

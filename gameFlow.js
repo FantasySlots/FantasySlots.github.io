@@ -341,6 +341,7 @@ export function draftPlayer(playerNum, player, originalPosition) {
         id: t.id ?? null,
         name: t.name ?? null,
         abbreviation: t.abbreviation ?? null  // 🚨 avoid undefined
+         logo: t.logo ?? null
     };
 }
 
@@ -374,6 +375,7 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
             id: t.id ?? null,
             name: t.name ?? null,
             abbreviation: t.abbreviation ?? null
+             logo: t.logo ?? null
         };
     }
 

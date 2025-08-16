@@ -8,7 +8,7 @@ import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
 import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';
 import { teams } from './data.js';
 import { updateLayout } from './game.js';
-
+import { PLACEHOLDER_HEADSHOT } from './playerState.js';
 /**
  * Handles the process of selecting a random NFL team.
  * @param {number} playerNum - The player number (1 or 2).
@@ -239,7 +239,7 @@ export async function autoDraft(playerNum) {
                     logo: randomTeam.logo ?? null
                 };
 
-import { PLACEHOLDER_HEADSHOT } from './constants.js';
+
 
 const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
 const headshotSrc = chosenPlayer.headshot?.href || PLACEHOLDER_HEADSHOT;

@@ -501,7 +501,7 @@ const hasRolledButNotPicked = (
 );
 
 if (noTeamsRolledYet && playerData[playerNum].avatar) {
-  // At very start → always show avatars
+  // 🎬 Very start: always avatars only
   stopLogoCycleInElement(playerLogoEl);
   playerLogoEl.src = playerData[playerNum].avatar;
   playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -520,35 +520,27 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
 
 } else if (hasRolledButNotPicked) {
   if (playerNum === gameState.currentPlayer) {
-    if (localPlayerNum === playerNum) {
-      // 👤 Current player (me) → I NEVER see cycling → just my rolled team logo
-      stopLogoCycleInElement(playerLogoEl);
-      playerLogoEl.src = playerData[playerNum].team.logo;
-      playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-      playerLogoEl.classList.remove('is-avatar');
-      document.getElementById(`player${playerNum}-team-name`).textContent =
-        playerData[playerNum].team.name;
+    // 👤 Current player (my turn) → show rolled team logo + draft interface
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = playerData[playerNum].team.logo;
+    playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+      playerData[playerNum].team.name;
 
-      const otherPlayerNum = playerNum === 1 ? 2 : 1;
-      const opponentData = playerData[otherPlayerNum];
-      displayDraftInterface(
-        playerNum,
-        playerData[playerNum].team.rosterData,
-        playerData[playerNum],
-        opponentData,
-        isFantasyRosterFull,
-        isPlayerPositionUndraftable,
-        draftPlayer
-      );
-    } else {
-      // 👀 Opponent looking at current player → ONLY place we show cycling
-      startLogoCycleInElement(playerLogoEl, teams, 120);
-      playerLogoEl.classList.remove('is-avatar');
-      document.getElementById(`player${playerNum}-team-name`).textContent =
-        `${playerData[playerNum].name} is picking...`;
-    }
+    const otherPlayerNum = playerNum === 1 ? 2 : 1;
+    const opponentData = playerData[otherPlayerNum];
+    displayDraftInterface(
+      playerNum,
+      playerData[playerNum].team.rosterData,
+      playerData[playerNum],
+      opponentData,
+      isFantasyRosterFull,
+      isPlayerPositionUndraftable,
+      draftPlayer
+    );
   } else {
-    // ❌ Not my turn yet → just avatar, no cycling
+    // 👀 Opponent’s perspective → still avatar, no cycling yet
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -570,15 +562,21 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
   inlineRosterEl.innerHTML = '';
 
 } else {
-  // Default fallback → avatars instead of cycling (no self-cycling allowed)
-  stopLogoCycleInElement(playerLogoEl);
-  playerLogoEl.src = playerData[playerNum].avatar || '';
-  playerLogoEl.alt = playerData[playerNum].name
-    ? `${playerData[playerNum].name}'s avatar`
-    : '';
-  playerLogoEl.classList.add('is-avatar');
-  document.getElementById(`player${playerNum}-team-name`).textContent =
-    `${playerData[playerNum].name || 'Player'} is waiting...`;
+  // 🔄 Default: show cycling ONLY if it’s the opponent’s turn
+  if (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) {
+    startLogoCycleInElement(playerLogoEl, teams, 120);
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+      `${playerData[playerNum].name} is rolling...`;
+  } else {
+    // Otherwise → just show avatar
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+      `${playerData[playerNum].name} is waiting...`;
+  }
 }
 
 

@@ -4,7 +4,7 @@
  */
 
 // Import from new modular files
-import { startLogoCycleInElement, stopLogoCycleInElement } from './uiAnimations.js';
+//import { startLogoCycleInElement, stopLogoCycleInElement } from './uiAnimations.js';
 import { gameState, playerData, isFantasyRosterFull, isPlayerPositionUndraftable, switchTurn, setGamePhase, updateLocalPlayerData } from './playerState.js';
 import { getOrCreateChild, updatePlayerContentDisplay, displayDraftInterface, displayFantasyRoster, renderPlayerAvatar } from './uiRenderer.js';
 import { showSlotSelectionModal, hideSlotSelectionModal, hideRosterModal, showPlayerStatsModal, hidePlayerStatsModal, renderPlayerStatsInModal, showAvatarSelectionModal, hideAvatarSelectionModal } from './uiModals.js';
@@ -371,7 +371,7 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
 
     if (shouldSwitchTurn && gameState.phase === 'DRAFTING') {
         if (gameMode !== 'multiplayer' || localPlayerNum === gameState.currentPlayer) {
-            switchTurn(syncGameState, localPlayerNum);
+            switchTurn(syncGameState, localPlayerNum); // Multiplayer sync
         } else if (gameMode === 'local') {
             switchTurn();
         }
@@ -478,28 +478,18 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
 
         // --- Team Logo / Avatar / Team Name ---
         if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-            stopLogoCycleInElement(playerLogoEl);
             playerLogoEl.src = playerData[playerNum].avatar;
             playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
             playerLogoEl.classList.add('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent =
-                `${playerData[playerNum].name}'s Roster`;
+            document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
 
         } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-            const isTheirTurn = playerNum === gameState.currentPlayer;
-            const hasRolledButNotPicked =
-                playerData[playerNum].team.rosterData &&
-                playerData[playerNum].draftedPlayers.length === 0;
+            playerLogoEl.src = playerData[playerNum].team.logo;
+            playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+            playerLogoEl.classList.remove('is-avatar');
+            document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
 
-            if (isTheirTurn && hasRolledButNotPicked) {
-                // 👤 Roller’s own view → show team logo + draft interface
-                stopLogoCycleInElement(playerLogoEl);
-                playerLogoEl.src = playerData[playerNum].team.logo;
-                playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-                playerLogoEl.classList.remove('is-avatar');
-                document.getElementById(`player${playerNum}-team-name`).textContent =
-                    playerData[playerNum].team.name;
-
+            if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
                 const otherPlayerNum = playerNum === 1 ? 2 : 1;
                 const opponentData = playerData[otherPlayerNum];
                 displayDraftInterface(
@@ -511,50 +501,40 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
                     isPlayerPositionUndraftable,
                     draftPlayer
                 );
-
-            } else if (!isTheirTurn && hasRolledButNotPicked) {
-                // 👀 Opponent’s view → show cycling animation until pick is made
-                startLogoCycleInElement(playerLogoEl, teams, 120);
-                playerLogoEl.classList.remove('is-avatar');
-                document.getElementById(`player${playerNum}-team-name`).textContent =
-                    `${playerData[playerNum].name} is picking...`;
-
             } else {
-                // 🏈 After pick → show team logo
-                stopLogoCycleInElement(playerLogoEl);
-                playerLogoEl.src = playerData[playerNum].team.logo;
-                playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-                playerLogoEl.classList.remove('is-avatar');
-                document.getElementById(`player${playerNum}-team-name`).textContent =
-                    playerData[playerNum].team.name;
-
                 const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
                 inlineRosterEl.innerHTML = '';
             }
 
         } else if (playerData[playerNum].avatar) {
-            stopLogoCycleInElement(playerLogoEl);
             playerLogoEl.src = playerData[playerNum].avatar;
             playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
             playerLogoEl.classList.add('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent =
-                'Select your team!';
+            document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
 
         } else {
-            stopLogoCycleInElement(playerLogoEl);
             playerLogoEl.src = '';
             playerLogoEl.alt = '';
             playerLogoEl.classList.remove('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent =
-                'Select your team!';
+            document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
         }
 
-        // --- Always render roster + controls ---
-        displayFantasyRoster(playerNum, playerData[playerNum], teams, isCurrentPlayerRosterFull, openPlayerStatsModalCaller);
+        // --- Roster + Display ---
+        displayFantasyRoster(
+            playerNum,
+            playerData[playerNum],
+            teams,
+            isCurrentPlayerRosterFull,
+            openPlayerStatsModalCaller
+        );
+
         updatePlayerContentDisplay(playerNum, playerData[playerNum], isFantasyRosterFull);
 
         if (isCurrentPlayerRosterFull) {
             fetchAndDisplayPlayerFantasyPoints(playerNum);
         }
+
+        // --- Always Update Avatar Preview ---
+        updateAvatarPreview(playerNum, playerData[playerNum].avatar);
     });
 }

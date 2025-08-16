@@ -501,13 +501,13 @@ const hasRolledButNotPicked = (
 
 if (noTeamsRolledYet && playerData[playerNum].avatar) {
   if (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) {
-    // 👀 Opponent’s first roll → cycle logos
+    // 👀 Opponent watching current player’s first roll → cycle logos
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is rolling...`;
   } else {
-    // Everyone else → avatar only
+    // Everyone else sees avatars
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -517,7 +517,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
   }
 
 } else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-  // ✅ Roster complete → avatar
+  // ✅ Roster full → locked avatar
   stopLogoCycleInElement(playerLogoEl);
   playerLogoEl.src = playerData[playerNum].avatar;
   playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
@@ -527,7 +527,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
 
 } else if (hasRolledButNotPicked) {
   if (playerNum === gameState.currentPlayer) {
-    // 👤 Current player (my screen) → team logo + draft UI
+    // 👤 Current player (me) → show rolled team logo + draft interface
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
@@ -548,7 +548,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
     );
 
   } else {
-    // 👀 Opponent (other screen) → show cycling logos (auto OR manual draft)
+    // 👀 Opponent (not me) → cycle logos until pick locked in
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');
     document.getElementById(`player${playerNum}-team-name`).textContent =
@@ -556,7 +556,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
   }
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-  // ✅ Draft locked → team logo
+  // ✅ After draft → locked team logo
   stopLogoCycleInElement(playerLogoEl);
   playerLogoEl.src = playerData[playerNum].team.logo;
   playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
@@ -568,7 +568,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
   inlineRosterEl.innerHTML = '';
 
 } else {
-  // 🔄 Default → opponent sees cycling, player sees avatar
+  // 🔄 Default: Opponent sees cycling, player sees avatar
   if (playerNum === gameState.currentPlayer && localPlayerNum !== playerNum) {
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');

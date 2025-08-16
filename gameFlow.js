@@ -142,7 +142,7 @@ export async function autoDraft(playerNum) {
             updateLayout(false);
         }, 1500);
     }
-}
+
     if (!playerData[playerNum].name) {
         alert('Please enter your name first!');
         return;

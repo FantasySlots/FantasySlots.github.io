@@ -42,28 +42,32 @@ let isSyncing = false; // Flag to prevent feedback loops
  */
 export async function syncWithFirebase() {
     if (gameMode !== 'multiplayer' || !gameRef) return;
-    
-    isSyncing = true;
-    console.log("[SYNC PUSH] Sending to Firebase:", {
-        currentPlayer: gameState.currentPlayer,
-        gameState: { ...gameState },
-        playerData: JSON.parse(JSON.stringify(playerData))
-    });
 
     try {
+        isSyncing = true;
+        console.log("[SYNC PUSH] Sending to Firebase:", {
+            currentPlayer: gameState.currentPlayer,
+            gameState: { ...gameState },
+            playerData: JSON.parse(JSON.stringify(playerData))
+        });
+
         await update(gameRef, {
             gameState: { ...gameState },
             playerData: { ...playerData }
         });
+
+        isSyncing = false;
+        console.log("[SYNC PUSH] isSyncing reset to false");
+
+        // Refresh UI instantly for the local player
+        updateLayout(playersPresence, gameState);
+
     } catch (error) {
         console.error("Firebase sync failed:", error);
-    } finally {
-        setTimeout(() => { 
-            isSyncing = false; 
-            console.log("[SYNC PUSH] isSyncing reset to false");
-        }, 200);
+        isSyncing = false;
     }
 }
+
 
 /**
  * Utility function to open player stats modal, acting as a bridge.

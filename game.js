@@ -40,17 +40,13 @@ let isSyncing = false; // Flag to prevent feedback loops
  * NEW: Sync local state with Firebase.
  * This function is the single point of truth for updating the remote state.
  */
-export async function syncWithFirebase() {
+async function syncWithFirebase() {
     if (gameMode !== 'multiplayer' || !gameRef) return;
     
-    isSyncing = true;
-    console.log("[SYNC PUSH] Sending to Firebase:", {
-        currentPlayer: gameState.currentPlayer,
-        gameState: { ...gameState },
-        playerData: JSON.parse(JSON.stringify(playerData))
-    });
-
+    isSyncing = true; // Prevent onValue listener from re-triggering actions
+    console.log("Syncing to Firebase:", { gameState, playerData });
     try {
+        // Use update instead of set to avoid erasing the 'players' node.
         await update(gameRef, {
             gameState: { ...gameState },
             playerData: { ...playerData }
@@ -58,10 +54,8 @@ export async function syncWithFirebase() {
     } catch (error) {
         console.error("Firebase sync failed:", error);
     } finally {
-        setTimeout(() => { 
-            isSyncing = false; 
-            console.log("[SYNC PUSH] isSyncing reset to false");
-        }, 200);
+        // Use a short timeout to ensure the write has time to propagate before we listen again
+        setTimeout(() => { isSyncing = false; }, 200);
     }
 }
 
@@ -140,11 +134,28 @@ function sanitizeForFirebase(obj) {
     return obj;
 }
 
-export function withFirebaseSync(actionFn) {
+export function withFirebaseSync(actionFn, { switchOnComplete = false } = {}) {
+
+    // Helper to remove rosterData and other unsafe Firebase keys
+    function stripUnsafeFields(obj) {
+        if (Array.isArray(obj)) {
+            return obj.map(stripUnsafeFields);
+        } else if (obj && typeof obj === 'object') {
+            const cleanObj = {};
+            for (const [key, value] of Object.entries(obj)) {
+                if (key === 'rosterData') continue; // ❌ Do not sync ESPN roster data
+                cleanObj[key] = stripUnsafeFields(value);
+            }
+            return cleanObj;
+        }
+        return obj;
+    }
+
     return async (...args) => {
         const playerNum = args[0];
 
         if (gameMode === 'multiplayer') {
+            // Prevent actions from wrong player
             if (playerNum !== localPlayerNum) return;
 
             const isDraftingAction = [
@@ -162,8 +173,29 @@ export function withFirebaseSync(actionFn) {
 
         await actionFn(...args);
 
-        // Always push the latest game state to Firebase
-        await syncWithFirebase();
+        // Handle turn switching after action if needed
+        if (switchOnComplete) {
+            const bothFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
+            if (bothFull) {
+                console.log(`[withFirebaseSync] Both rosters full — setting phase to COMPLETE`);
+                setGamePhase('COMPLETE');
+            } else {
+                console.log(`[withFirebaseSync] Switching turn from Player ${gameState.currentPlayer}`);
+                switchTurn();
+            }
+        }
+
+        // ✅ Sync to Firebase without unsafe data
+        if (gameMode === 'multiplayer') {
+            try {
+                await update(gameRef, {
+                    playerData: stripUnsafeFields(playerData),
+                    gameState: stripUnsafeFields(gameState)
+                });
+            } catch (err) {
+                console.error("Firebase sync failed:", err);
+            }
+        }
     };
 }
 
@@ -254,21 +286,19 @@ async function setupMultiplayerGame() {
         document.getElementById('copy-link-btn').textContent = 'Copied!';
     });
 
-onValue(gameRef, (snapshot) => {
-    const remoteData = snapshot.val();
-    if (!remoteData) return;
-
-    if (isSyncing) {
-        console.log("[SYNC RECEIVE] Updating UI even though isSyncing=true");
-    }
-
-    Object.assign(gameState, remoteData.gameState || {});
-    updateLocalPlayerData(remoteData.playerData);
-    updateLayout(remoteData.players, remoteData.gameState);
-
-    if (isSyncing) return; // only skip re-triggering actions, not UI
-});
-
+    onValue(gameRef, (snapshot) => {
+        if (isSyncing) return; // Ignore updates that we initiated
+        const remoteData = snapshot.val();
+        if (remoteData) {
+            console.log("Received data from Firebase:", remoteData);
+            // Deep copy to avoid mutation issues
+            Object.assign(gameState, JSON.parse(JSON.stringify(remoteData.gameState || {})));
+            // Safely update player data using the new helper function
+            updateLocalPlayerData(remoteData.playerData);
+            // NEW: Pass the players presence node to updateLayout
+            updateLayout(remoteData.players);
+        }
+    });
     
     // Wrap actions with Firebase sync logic
     // CRITICAL FIX: The action is for player 1, not necessarily the local player.
@@ -389,13 +419,10 @@ function getOrCreateClientId() {
  * @param {boolean} shouldSwitchTurn - Whether to switch the current player turn.
  * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
-export function updateLayout(playersPresence = {}, currentState = gameState) {
-    const phase = currentState.phase;
-    const currentPlayer = currentState.currentPlayer;
-
+export function updateLayout(playersPresence = {}) {
     // Phase transition check for name entry
     if (
-        phase === 'NAME_ENTRY' &&
+        gameState.phase === 'NAME_ENTRY' &&
         playerData[1]?.name &&
         playerData[2]?.name
     ) {
@@ -448,7 +475,7 @@ export function updateLayout(playersPresence = {}, currentState = gameState) {
         const isCurrentPlayerRosterFull = isFantasyRosterFull(playerNum);
         const readyMessageEl = document.getElementById(`player${playerNum}-ready-message`);
 
-        if (phase === 'NAME_ENTRY') {
+        if (gameState.phase === 'NAME_ENTRY') {
             playerSection.classList.remove('active-turn', 'inactive-turn');
             playerDisplayDiv.style.display = 'none';
 
@@ -469,7 +496,7 @@ export function updateLayout(playersPresence = {}, currentState = gameState) {
 
             renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
 
-            const isMyTurn = playerNum === currentPlayer;
+            const isMyTurn = playerNum === gameState.currentPlayer;
             if (isMyTurn) {
                 playerSection.classList.add('active-turn');
                 playerSection.classList.remove('inactive-turn');
@@ -535,7 +562,6 @@ export function updateLayout(playersPresence = {}, currentState = gameState) {
         updateAvatarPreview(playerNum, playerData[playerNum].avatar);
     });
 }
-
 
 
 /**

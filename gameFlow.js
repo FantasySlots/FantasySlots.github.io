@@ -2,7 +2,6 @@
  * gameFlow.js
  * Contains the core game logic for team selection, drafting, and player state resets.
  */
-import { syncWithFirebase } from './game.js';
 import { gameMode, withFirebaseSync } from './game.js';
 import { gameState, playerData, isFantasyRosterFull, resetGameState, switchTurn } from './playerState.js';
 import { shuffleArray, getRandomElement } from './utils.js';
@@ -20,62 +19,69 @@ export async function selectTeam(playerNum) {
         alert("It's not your turn!");
         return;
     }
-    // If roster is full, prevent new team selection or auto-draft.
+
+    // If roster is full, prevent new team selection or auto-draft
     if (isFantasyRosterFull(playerNum)) {
         alert('Your fantasy roster is full! You cannot draft more players.');
         return;
     }
 
-    // Reset current team's drafted players for a new drafting turn
-    playerData[playerNum].team = null;
-    playerData[playerNum].draftedPlayers = []; 
-    console.log(`Player ${playerNum}: draftedPlayers reset to [] after selecting new team.`);
-    
     // Clear the player content area immediately for the animation
-    document.getElementById(`player${playerNum}-content-area`).innerHTML = ''; 
+    document.getElementById(`player${playerNum}-content-area`).innerHTML = '';
 
-    showTeamAnimationOverlay('Selecting your team...', '', false); // Show animation overlay
-    
+    showTeamAnimationOverlay('Selecting your team...', '', false);
+
     // Animate through logos
     let currentIndex = 0;
-    const animationDuration = 3100; // 2.5 seconds
-    const interval = 100; // Change every 100ms
-    
+    const animationDuration = 3100;
+    const interval = 100;
+
     const animateInterval = setInterval(() => {
         const currentTeamLogo = teams[currentIndex].logo;
-        showTeamAnimationOverlay('Selecting your team...', currentTeamLogo, false); // Update logo during animation
+        showTeamAnimationOverlay('Selecting your team...', currentTeamLogo, false);
         currentIndex = (currentIndex + 1) % teams.length;
     }, interval);
-    
+
     // Select random team after animation duration
     setTimeout(async () => {
         clearInterval(animateInterval);
         const randomTeam = teams[Math.floor(Math.random() * teams.length)];
-        playerData[playerNum].team = randomTeam; 
-        
-        showTeamAnimationOverlay(`Selected: ${randomTeam.name}`, randomTeam.logo, false); 
-        
-        // Wait a bit then hide animation and update UI
+
+        // ✅ If the team is different from the previous one, reset draftedPlayers
+        if (!playerData[playerNum].team || playerData[playerNum].team.id !== randomTeam.id) {
+            playerData[playerNum].draftedPlayers = [];
+            console.log(`Player ${playerNum}: draftedPlayers reset due to new team selection (${randomTeam.name}).`);
+        }
+
+        playerData[playerNum].team = randomTeam;
+
+        showTeamAnimationOverlay(`Selected: ${randomTeam.name}`, randomTeam.logo, false);
+
         setTimeout(async () => {
-            hideTeamAnimationOverlay(); 
-            
-            // Fetch roster and display draft interface
+            hideTeamAnimationOverlay();
+
             try {
-                const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
+                const response = await fetch(
+                    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`
+                );
                 const data = await response.json();
-                
+
                 if (data.athletes) {
-                    playerData[playerNum].team.rosterData = data.athletes; 
-                    localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum])); // Save state after team selection
+                    // Store roster locally only — don't sync to Firebase
+                    playerData[playerNum].team.rosterData = data.athletes;
+
+                    // Save state after team selection
+                    localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
                 }
             } catch (error) {
                 console.error('Error fetching roster:', error);
             }
-            // Update layout based on new team selection
+
             updateLayout();
         }, 500);
     }, animationDuration);
 }
+
 
 /**
  * NEW: Helper function to find an available roster slot for a given player and their position.
@@ -128,12 +134,9 @@ export async function autoDraft(playerNum) {
         return;
     }
 
-    // Show initial animation overlay
     showTeamAnimationOverlay('Auto-drafting a player...');
 
-    const animationDuration = 3000; // 3 seconds total
-
-    // Animate through player headshots while searching
+    const animationDuration = 3000; 
     let animateInterval;
     const headshotsForAnimation = [];
     let animationTeamIndex = 0;
@@ -158,7 +161,6 @@ export async function autoDraft(playerNum) {
         animationTeamIndex++;
     };
 
-    // Pre-fetch some headshots to start
     await fetchHeadshotsForAnimation();
 
     let headshotIndex = 0;
@@ -226,13 +228,20 @@ export async function autoDraft(playerNum) {
                     if (availableSlot) {
                         chosenPlayer = player;
                         draftedPlayer = true;
+
+                        // ✅ Reset draftedPlayers only if from a different team
+                        if (!playerData[playerNum].team || playerData[playerNum].team.id !== randomTeam.id) {
+                            playerData[playerNum].draftedPlayers = [];
+                            console.log(`Player ${playerNum}: draftedPlayers reset due to new team selection (${randomTeam.name}) in auto-draft.`);
+                        }
+
+                        playerData[playerNum].team = randomTeam; // set current team
                         break;
                     }
                 }
             }
 
             if (chosenPlayer && availableSlot) {
-                // Ensure originalPosition is set for assignPlayerToSlot
                 if (!chosenPlayer.originalPosition) {
                     chosenPlayer.originalPosition = chosenPlayer.position?.abbreviation || chosenPlayer.position?.name;
                 }
@@ -243,8 +252,12 @@ export async function autoDraft(playerNum) {
 
                 setTimeout(async () => {
                     hideTeamAnimationOverlay();
-                    // Always use assignPlayerToSlot — it will switch turn & sync if multiplayer
-                    assignPlayerToSlot(playerNum, chosenPlayer, availableSlot);
+
+                    if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
+                        await withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, chosenPlayer, availableSlot);
+                    } else {
+                        assignPlayerToSlot(playerNum, chosenPlayer, availableSlot);
+                    }
                 }, 1500);
             } else {
                 showTeamAnimationOverlay(`No draftable player found! Try again.`);
@@ -266,8 +279,6 @@ export async function autoDraft(playerNum) {
 }
 
 
-
-
 /**
  * Initiates the drafting process for a selected player.
  * @param {number} playerNum - The player number (1 or 2).
@@ -280,17 +291,23 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
-    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
+    // Don't allow drafting the same player twice by same team
+    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
+        .some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
     if (isAlreadyInFantasyRoster) {
         console.warn(`Player ${player.displayName} is already in Player ${playerNum}'s fantasy roster.`);
         alert(`${player.displayName} is already in your fantasy roster!`);
         return;
     }
 
-    // This check ensures only one player is drafted per 'team spin'
-    if (playerData[playerNum].draftedPlayers.length > 0) {
-        console.warn(`Player ${playerNum} has already drafted a player from this team. draftedPlayers.length: ${playerData[playerNum].draftedPlayers.length}`);
-        alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
+    // ✅ Only block "already drafted from this team" if we're still on the *same team* as last pick
+    if (
+        playerData[playerNum].draftedPlayers.length > 0 &&
+        playerData[playerNum].team &&
+        playerData[playerNum].team.id === player.teamId // assuming ESPN data has `teamId`
+    ) {
+        console.warn(`Player ${playerNum} has already drafted a player from ${playerData[playerNum].team.name} this turn.`);
+        alert('You have already drafted a player from this team this turn. Please select a new team or auto-draft to draft another player.');
         return;
     }
 
@@ -300,38 +317,45 @@ export function draftPlayer(playerNum, player, originalPosition) {
         return;
     }
 
+    // ✅ If new team, reset draftedPlayers and set current team
+    if (!playerData[playerNum].team || playerData[playerNum].team.id !== player.teamId) {
+        playerData[playerNum].draftedPlayers = [];
+        playerData[playerNum].team = teams.find(t => t.id === player.teamId) || playerData[playerNum].team;
+        console.log(`Player ${playerNum}: draftedPlayers reset for new team (${playerData[playerNum].team?.name || 'Unknown'}) in manual draft.`);
+    }
+
     const flexPositions = ['RB', 'WR', 'TE'];
-
-if (flexPositions.includes(originalPosition)) {
-    showSlotSelectionModal(
-        player, 
-        playerNum, 
-        originalPosition, 
-        playerData[playerNum], 
-        gameMode === 'multiplayer' 
-            ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true }) 
-            : assignPlayerToSlot, 
-        hideSlotSelectionModal
-    );
-} else {
-    let targetSlot;
-    if (originalPosition === 'QB') targetSlot = 'QB';
-    else if (originalPosition === 'K') targetSlot = 'K';
-    else if (originalPosition === 'DEF') targetSlot = 'DEF';
-
-    if (targetSlot) {
-        if (gameMode === 'multiplayer') {
-            withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, player, targetSlot);
-        } else {
-            assignPlayerToSlot(playerNum, player, targetSlot);
-        }
+    if (flexPositions.includes(originalPosition)) {
+        showSlotSelectionModal(
+            player,
+            playerNum,
+            originalPosition,
+            playerData[playerNum],
+            gameMode === 'multiplayer'
+                ? withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })
+                : assignPlayerToSlot,
+            hideSlotSelectionModal
+        );
     } else {
-        console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
-        alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
+        let targetSlot;
+        if (originalPosition === 'QB') targetSlot = 'QB';
+        else if (originalPosition === 'K') targetSlot = 'K';
+        else if (originalPosition === 'DEF') targetSlot = 'DEF';
+
+        if (targetSlot) {
+            if (gameMode === 'multiplayer') {
+                withFirebaseSync(assignPlayerToSlot, { switchOnComplete: true })(playerNum, player, targetSlot);
+            } else {
+                assignPlayerToSlot(playerNum, player, targetSlot);
+            }
+        } else {
+            console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
+            alert(`Cannot draft ${player.displayName} to an unknown slot for position ${originalPosition}.`);
+        }
     }
 }
 
-}
+
 
 /**
  * Assigns a drafted player to a specific fantasy roster slot.
@@ -339,47 +363,50 @@ if (flexPositions.includes(originalPosition)) {
  * @param {object} playerObj - The NFL player object to assign.
  * @param {string} slotId - The fantasy roster slot ID (e.g., 'QB', 'RB', 'WR1').
  */
-export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
+export function assignPlayerToSlot(playerNum, playerObj, slotId) {
     if (playerNum !== gameState.currentPlayer) {
+        console.warn(`ASSIGNMENT BLOCKED: Not Player ${playerNum}'s turn.`);
         alert("It's not your turn!");
         hideSlotSelectionModal();
         return;
     }
 
-    // Block duplicate in same roster
-    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
-        .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
+    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
     if (isAlreadyInFantasyRoster) {
+        console.warn(`ASSIGNMENT BLOCKED: ${playerObj.displayName} is already in Player ${playerNum}'s fantasy roster.`);
         alert(`${playerObj.displayName} is already in your fantasy roster!`);
         hideSlotSelectionModal();
         return;
     }
 
-    // Block duplicate in opponent's roster
+    // NEW: Check if the player has been drafted by the opponent.
     const otherPlayerNum = playerNum === 1 ? 2 : 1;
-    const isDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots)
-        .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
-    if (isDraftedByOpponent) {
-        alert(`${playerObj.displayName} has already been drafted by ${playerData[otherPlayerNum].name}!`);
-        hideSlotSelectionModal();
-        return;
+    if (playerData[otherPlayerNum].name) { // Only check if opponent exists
+        const isDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
+        if (isDraftedByOpponent) {
+            alert(`${playerObj.displayName} has already been drafted by ${playerData[otherPlayerNum].name}!`);
+            hideSlotSelectionModal();
+            return;
+        }
     }
 
-    // One per team rule
+    // This check ensures only one player is drafted per 'team spin'
     if (playerData[playerNum].draftedPlayers.length > 0) {
-        alert('You have already drafted a player from this team. Please select a new team or auto-draft.');
+        console.warn(`ASSIGNMENT BLOCKED: Player ${playerNum} has already drafted a player from this team (length: ${playerData[playerNum].draftedPlayers.length}).`);
+        alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
         hideSlotSelectionModal();
         return;
     }
 
-    // Slot already occupied
     if (playerData[playerNum].rosterSlots[slotId]) {
-        alert(`The ${slotId} slot is already occupied.`);
+        console.warn(`ASSIGNMENT BLOCKED: The ${slotId} slot for Player ${playerNum} is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
+        alert(`The ${slotId} slot is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
         hideSlotSelectionModal();
         return;
     }
 
-    // Assign player to slot
+    // If all checks pass, assign the player
+    console.log(`Assigning ${playerObj.displayName} to ${slotId} for Player ${playerNum}.`);
     playerData[playerNum].rosterSlots[slotId] = {
         id: playerObj.id,
         displayName: playerObj.displayName,
@@ -389,17 +416,21 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         fantasyPoints: null,
         statsData: null
     };
+
     playerData[playerNum].draftedPlayers.push({ id: playerObj.id, assignedSlot: slotId });
 
     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
     hideSlotSelectionModal();
-
-        // Always update UI locally after turn change
     
-    // Always switch turn — switchTurn will handle multiplayer sync
-   await switchTurn();
-    updateLayout();
-
+    // Update layout to reflect the drafted player and switch turns
+    if (typeof gameMode !== 'undefined' && gameMode === 'multiplayer') {
+    // No local switch — Firebase sync will handle UI updates
+    updateLayout(false);
+} else {
+    // Local games still need the turn change here
+        switchTurn();
+        updateLayout();
+     // keep turn switching in local mode only
 }
-
+}

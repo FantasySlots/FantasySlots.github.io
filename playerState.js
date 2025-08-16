@@ -3,7 +3,7 @@
  * Manages the core game state related to players, their rosters, and helper functions
  * to check roster status.
  */
-import { syncWithFirebase, gameMode } from './game.js';
+
 // NEW: Centralized game state for turn management and game phase
 export const gameState = {
     currentPlayer: 1,
@@ -54,15 +54,9 @@ export function updateLocalPlayerData(remotePlayerData) {
 /**
  * NEW: Switches the current player turn.
  */
-export async function switchTurn() {
+export function switchTurn() {
     gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
-    updateLayout(undefined, gameState); // Apply change locally immediately
-
-    if (gameMode === 'multiplayer') {
-        await syncWithFirebase();
-    }
 }
-
 
 /**
  * NEW: Sets the current game phase.
@@ -86,14 +80,20 @@ export function resetGameState() {
  * @returns {boolean} True if the roster is full, false otherwise.
  */
 export function isFantasyRosterFull(playerNum) {
-    // Add a guard to prevent errors if playerData for the player or its rosterSlots doesn't exist yet.
+    // Guard clause
     if (!playerData[playerNum] || !playerData[playerNum].rosterSlots) {
         return false;
     }
+
     const roster = playerData[playerNum].rosterSlots;
-    const requiredSlots = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'Flex', 'DEF', 'K'];
-    return requiredSlots.every(slot => roster[slot] !== null);
+
+    // Match actual slot keys used in your roster data
+    const requiredSlots = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'FLEX', 'DEF', 'K'];
+
+    // Every required slot must be truthy (not null or undefined)
+    return requiredSlots.every(slot => roster[slot]);
 }
+
 
 /**
  * Checks if a player's fantasy roster has any available slot for a given position type.

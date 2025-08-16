@@ -538,35 +538,44 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
         `${playerData[playerNum].name}'s Roster`;
 
 } else if (hasRolledButNotPicked) {
-    if (playerNum === gameState.currentPlayer) {
-        // 👤 Current player → show team logo + draft interface
-        stopLogoCycleInElement(playerLogoEl);
-        playerLogoEl.src = playerData[playerNum].team.logo;
-        playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-        playerLogoEl.classList.remove('is-avatar');
-        document.getElementById(`player${playerNum}-team-name`).textContent =
-            playerData[playerNum].team.name;
+  if (playerNum === gameState.currentPlayer) {
+    if (localPlayerNum === playerNum) {
+      // 👤 Current player (me) → show my rolled team logo + draft interface
+      stopLogoCycleInElement(playerLogoEl);
+      playerLogoEl.src = playerData[playerNum].team.logo;
+      playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+      playerLogoEl.classList.remove('is-avatar');
+      document.getElementById(`player${playerNum}-team-name`).textContent =
+        playerData[playerNum].team.name;
 
-        const otherPlayerNum = playerNum === 1 ? 2 : 1;
-        const opponentData = playerData[otherPlayerNum];
-        displayDraftInterface(
-            playerNum,
-            playerData[playerNum].team.rosterData,
-            playerData[playerNum],
-            opponentData,
-            isFantasyRosterFull,
-            isPlayerPositionUndraftable,
-            draftPlayer
-        );
+      const otherPlayerNum = playerNum === 1 ? 2 : 1;
+      const opponentData = playerData[otherPlayerNum];
+      displayDraftInterface(
+        playerNum,
+        playerData[playerNum].team.rosterData,
+        playerData[playerNum],
+        opponentData,
+        isFantasyRosterFull,
+        isPlayerPositionUndraftable,
+        draftPlayer
+      );
     } else {
-        // 👀 Opponent → show cycling on the current player’s slot
-        startLogoCycleInElement(playerLogoEl, teams, 120);
-        playerLogoEl.classList.remove('is-avatar');
-        document.getElementById(`player${playerNum}-team-name`).textContent =
-            `${playerData[playerNum].name} is picking...`;
+      // 👀 Opponent viewing current player's slot → show cycling animation
+      startLogoCycleInElement(playerLogoEl, teams, 120);
+      playerLogoEl.classList.remove('is-avatar');
+      document.getElementById(`player${playerNum}-team-name`).textContent =
+        `${playerData[playerNum].name} is picking...`;
     }
-
-} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
+  } else {
+    // Not the current player → stay on avatar
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+      `${playerData[playerNum].name} is waiting...`;
+  }
+ else if (playerData[playerNum].team && playerData[playerNum].team.id) {
     // ✅ After draft → show locked team logo
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].team.logo;

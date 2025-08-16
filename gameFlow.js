@@ -233,37 +233,46 @@ export async function autoDraft(playerNum) {
                 }
             }
 
-            if (chosenPlayer && availableSlot) {
-                 // Determine if the headshot is an avatar or a real photo
-                 const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
-                 const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
-                 showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
-                
-                // Assign player to slot
-                playerData[playerNum].rosterSlots[availableSlot] = {
-                    id: chosenPlayer.id,
-                    displayName: chosenPlayer.displayName,
-                    originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
-                    assignedSlot: availableSlot,
-                    headshot: chosenPlayer.headshot,
-                    fantasyPoints: null,
-                    statsData: null
-                };
-                
-                // NEW: Ensure team and draftedPlayers are nullified after auto-draft
-                // This signals that the next turn requires a new "Roll Team" or another auto-draft.
-                playerData[playerNum].team = null;
-                playerData[playerNum].draftedPlayers = [];
+           if (chosenPlayer && availableSlot) {
+    // Attach the team reference (so updateLayout shows the logo frame)
+    playerData[playerNum].team = {
+        id: randomTeam.id,
+        name: randomTeam.name,
+        abbreviation: randomTeam.abbreviation,
+        logo: randomTeam.logo,
+        rosterData: null // no need to keep heavy data
+    };
 
-                localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+    // Show drafted player
+    const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
+    const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
+    showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
+
+    // Assign player to fantasy roster slot
+    playerData[playerNum].rosterSlots[availableSlot] = {
+        id: chosenPlayer.id,
+        displayName: chosenPlayer.displayName,
+        originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
+        assignedSlot: availableSlot,
+        headshot: chosenPlayer.headshot,
+        fantasyPoints: null,
+        statsData: null
+    };
+
+    // Record that they drafted from this team
+    playerData[playerNum].draftedPlayers = [{
+        id: chosenPlayer.id,
+        assignedSlot: availableSlot
+    }];
+
+    localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
     setTimeout(() => {
-  hideTeamAnimationOverlay();
-  updateLayout(true); // wrapper will handle syncing
-}, 1500);
-
- // Show drafted player for a bit
-            } else {
+        hideTeamAnimationOverlay();
+        updateLayout(true); // now shows correct team logo
+    }, 1500);
+}
+ else {
                  showTeamAnimationOverlay(`No draftable player found! Try again.`);
                 setTimeout(() => {
                     hideTeamAnimationOverlay();

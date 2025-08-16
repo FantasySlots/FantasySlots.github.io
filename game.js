@@ -566,7 +566,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
       document.getElementById(`player${playerNum}-team-name`).textContent =
         `${playerData[playerNum].name} is picking...`;
     }
-  } else {
+   else {
     // Not the current player → stay on avatar
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;

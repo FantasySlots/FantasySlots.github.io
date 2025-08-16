@@ -524,6 +524,12 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
   playerLogoEl.classList.add('is-avatar');
   document.getElementById(`player${playerNum}-team-name`).textContent =
     `${playerData[playerNum].name}'s Roster`;
+} else if (playerData[playerNum].isAutoDrafting) {
+    // 🔄 Show cycling logos during autoDraft
+    startLogoCycleInElement(playerLogoEl, teams, 120);
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent =
+        `${playerData[playerNum].name} is auto-drafting...`;
 
 } else if (hasRolledButNotPicked) {
   if (playerNum === gameState.currentPlayer) {

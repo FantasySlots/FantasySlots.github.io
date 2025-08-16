@@ -488,13 +488,13 @@ export function updateLayout(playersPresence = {}, currentState = gameState) {
                 playerSection.classList.add('inactive-turn');
                 playerSection.classList.remove('active-turn');
             }
-
+/* commented this out for controlls to stop disabeling 
             if (gameMode === 'multiplayer' && playerNum !== localPlayerNum) {
                 disablePlayerControls(playerNum);
             } else {
                 enablePlayerControls(playerNum);
             }
-
+*/
             if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
                 playerLogoEl.src = playerData[playerNum].avatar;
                 playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;

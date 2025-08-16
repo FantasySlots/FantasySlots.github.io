@@ -566,7 +566,7 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
       document.getElementById(`player${playerNum}-team-name`).textContent =
         `${playerData[playerNum].name} is picking...`;
     }
-   else {
+  } else {
     // Not the current player → stay on avatar
     stopLogoCycleInElement(playerLogoEl);
     playerLogoEl.src = playerData[playerNum].avatar;
@@ -575,19 +575,20 @@ if (noTeamsRolledYet && playerData[playerNum].avatar) {
     document.getElementById(`player${playerNum}-team-name`).textContent =
       `${playerData[playerNum].name} is waiting...`;
   }
- else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // ✅ After draft → show locked team logo
-    stopLogoCycleInElement(playerLogoEl);
-    playerLogoEl.src = playerData[playerNum].team.logo;
-    playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-    playerLogoEl.classList.remove('is-avatar');
-    document.getElementById(`player${playerNum}-team-name`).textContent =
-        playerData[playerNum].team.name;
 
-    const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
-    inlineRosterEl.innerHTML = '';
+} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
+  // ✅ After draft → show locked team logo
+  stopLogoCycleInElement(playerLogoEl);
+  playerLogoEl.src = playerData[playerNum].team.logo;
+  playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+  playerLogoEl.classList.remove('is-avatar');
+  document.getElementById(`player${playerNum}-team-name`).textContent =
+    playerData[playerNum].team.name;
 
-} else {
+  const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+  inlineRosterEl.innerHTML = '';
+}
+ else {
     // Default fallback → cycle (rolling phase)
     startLogoCycleInElement(playerLogoEl, teams, 120);
     playerLogoEl.classList.remove('is-avatar');

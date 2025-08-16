@@ -251,18 +251,23 @@ export async function autoDraft(playerNum) {
                 };
                 
                // Store the drafted team so updateLayout shows it in the frame
-playerData[playerNum].team = {
-    id: chosenPlayer.team?.id || chosenPlayer.id.replace('DEF-', ''),
-    name: chosenPlayer.team?.name || chosenPlayer.displayName,
-    abbreviation: chosenPlayer.team?.abbreviation || chosenPlayer.originalPosition,
-    logo: chosenPlayer.headshot?.href || chosenPlayer.logo || null
-};
+// ✅ NEW: Ensure their "team" object is set so logo displays in frame
+if (chosenPlayer.team) {
+    playerData[playerNum].team = {
+        id: chosenPlayer.team.id,
+        name: chosenPlayer.team.displayName || chosenPlayer.team.name,
+        abbreviation: chosenPlayer.team.abbreviation,
+        logo: chosenPlayer.team.logo,
+        rosterData: playerData[playerNum].team?.rosterData || null // keep if already loaded
+    };
+}
 
-// Mark this player as drafted (so logic stays consistent with draftPlayer)
+// ✅ NEW: Record drafted player
 playerData[playerNum].draftedPlayers.push({
     id: chosenPlayer.id,
     assignedSlot: availableSlot
 });
+
 
 
                 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));

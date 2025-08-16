@@ -498,7 +498,7 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         `${playerData[playerNum].name}'s Roster`;
 
 } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-    // ✅ They have rolled a team → show that team’s logo
+    // ✅ They have rolled a team → show that team’s logo/cycling
     playerLogoEl.src = playerData[playerNum].team.logo;
     playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
     playerLogoEl.classList.remove('is-avatar');
@@ -522,8 +522,8 @@ if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
         inlineRosterEl.innerHTML = '';
     }
 
-} else if (!playerData[playerNum].team && playerData[playerNum].avatar) {
-    // ✅ Beginning of drafting phase → show avatars until a team is rolled
+} else if (gameState.phase === 'DRAFTING' && !playerData[playerNum].team && playerData[playerNum].avatar) {
+    // ✅ Only at the very start of DRAFTING (before rolling) → show avatars
     playerLogoEl.src = playerData[playerNum].avatar;
     playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
     playerLogoEl.classList.add('is-avatar');

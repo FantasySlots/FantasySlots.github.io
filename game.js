@@ -4,7 +4,7 @@
  */
 
 // Import from new modular files
-//import { startLogoCycleInElement, stopLogoCycleInElement } from './uiAnimations.js';
+import { startLogoCycleInElement, stopLogoCycleInElement } from './uiAnimations.js';
 import { gameState, playerData, isFantasyRosterFull, isPlayerPositionUndraftable, switchTurn, setGamePhase, updateLocalPlayerData } from './playerState.js';
 import { getOrCreateChild, updatePlayerContentDisplay, displayDraftInterface, displayFantasyRoster, renderPlayerAvatar } from './uiRenderer.js';
 import { showSlotSelectionModal, hideSlotSelectionModal, hideRosterModal, showPlayerStatsModal, hidePlayerStatsModal, renderPlayerStatsInModal, showAvatarSelectionModal, hideAvatarSelectionModal } from './uiModals.js';
@@ -489,48 +489,46 @@ if (gameMode === 'multiplayer') {
 
 
 
-        // --- Team Logo / Avatar / Team Name ---
-        if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
-            playerLogoEl.src = playerData[playerNum].avatar;
-            playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-            playerLogoEl.classList.add('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
+      // --- Team Logo / Avatar / Team Name ---
+if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {
+    // ✅ Only time we show avatar frame
+    playerLogoEl.src = playerData[playerNum].avatar;
+    playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+    playerLogoEl.classList.add('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent = `${playerData[playerNum].name}'s Roster`;
 
-        } else if (playerData[playerNum].team && playerData[playerNum].team.id) {
-            playerLogoEl.src = playerData[playerNum].team.logo;
-            playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
-            playerLogoEl.classList.remove('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
+} else if (playerData[playerNum].team && playerData[playerNum].team.id) {
+    // Team locked in → show their team logo
+    stopLogoCycleInElement(playerLogoEl);
+    playerLogoEl.src = playerData[playerNum].team.logo;
+    playerLogoEl.alt = `${playerData[playerNum].team.name} logo`;
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent = playerData[playerNum].team.name;
 
-            if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
-                const otherPlayerNum = playerNum === 1 ? 2 : 1;
-                const opponentData = playerData[otherPlayerNum];
-                displayDraftInterface(
-                    playerNum,
-                    playerData[playerNum].team.rosterData,
-                    playerData[playerNum],
-                    opponentData,
-                    isFantasyRosterFull,
-                    isPlayerPositionUndraftable,
-                    draftPlayer
-                );
-            } else {
-                const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
-                inlineRosterEl.innerHTML = '';
-            }
+    if (playerData[playerNum].team.rosterData && playerData[playerNum].draftedPlayers.length === 0) {
+        const otherPlayerNum = playerNum === 1 ? 2 : 1;
+        const opponentData = playerData[otherPlayerNum];
+        displayDraftInterface(
+            playerNum,
+            playerData[playerNum].team.rosterData,
+            playerData[playerNum],
+            opponentData,
+            isFantasyRosterFull,
+            isPlayerPositionUndraftable,
+            draftPlayer
+        );
+    } else {
+        const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
+        inlineRosterEl.innerHTML = '';
+    }
 
-        } else if (playerData[playerNum].avatar) {
-            playerLogoEl.src = playerData[playerNum].avatar;
-            playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
-            playerLogoEl.classList.add('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+} else {
+    // ❌ Anywhere else that used to show avatar → cycle animation instead
+    startLogoCycleInElement(playerLogoEl, teams, 120);
+    playerLogoEl.classList.remove('is-avatar');
+    document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
+}
 
-        } else {
-            playerLogoEl.src = '';
-            playerLogoEl.alt = '';
-            playerLogoEl.classList.remove('is-avatar');
-            document.getElementById(`player${playerNum}-team-name`).textContent = 'Select your team!';
-        }
 
         // --- Roster + Display ---
         displayFantasyRoster(

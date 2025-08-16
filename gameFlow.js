@@ -372,14 +372,13 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
             id: t.id ?? null,
             name: t.name ?? null,
             abbreviation: t.abbreviation ?? null,
-             logo: t.logo ?? null
+            logo: t.logo ?? null
         };
     }
 
-
-
-
-    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
+    // Prevent duplicates, opponent stealing, etc. (unchanged)
+    const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots)
+        .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
     if (isAlreadyInFantasyRoster) {
         console.warn(`ASSIGNMENT BLOCKED: ${playerObj.displayName} is already in Player ${playerNum}'s fantasy roster.`);
         alert(`${playerObj.displayName} is already in your fantasy roster!`);
@@ -387,10 +386,10 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         return;
     }
 
-    // NEW: Check if the player has been drafted by the opponent.
     const otherPlayerNum = playerNum === 1 ? 2 : 1;
-    if (playerData[otherPlayerNum].name) { // Only check if opponent exists
-        const isDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
+    if (playerData[otherPlayerNum].name) {
+        const isDraftedByOpponent = Object.values(playerData[otherPlayerNum].rosterSlots)
+            .some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
         if (isDraftedByOpponent) {
             alert(`${playerObj.displayName} has already been drafted by ${playerData[otherPlayerNum].name}!`);
             hideSlotSelectionModal();
@@ -398,29 +397,32 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         }
     }
 
-    // This check ensures only one player is drafted per 'team spin'
     if (playerData[playerNum].draftedPlayers.length > 0) {
-        console.warn(`ASSIGNMENT BLOCKED: Player ${playerNum} has already drafted a player from this team (length: ${playerData[playerNum].draftedPlayers.length}).`);
-        alert('You have already drafted a player from this team. Please select a new team or auto-draft to draft another player.');
+        console.warn(`ASSIGNMENT BLOCKED: Player ${playerNum} already drafted this turn.`);
+        alert('You have already drafted a player from this team. Please roll a new team.');
         hideSlotSelectionModal();
         return;
     }
 
     if (playerData[playerNum].rosterSlots[slotId]) {
-        console.warn(`ASSIGNMENT BLOCKED: The ${slotId} slot for Player ${playerNum} is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
-        alert(`The ${slotId} slot is already occupied by ${playerData[playerNum].rosterSlots[slotId].displayName}.`);
+        console.warn(`ASSIGNMENT BLOCKED: ${slotId} slot already occupied.`);
+        alert(`The ${slotId} slot is already occupied.`);
         hideSlotSelectionModal();
         return;
     }
 
-    // If all checks pass, assign the player
+    // ✅ Normalize headshot here
+    const placeholderHeadshot = 'https://i.postimg.cc/Hxsb5C4T/Chat-GPT-Image-Aug-16-2025-02-34-57-PM.png';
+    const safeHeadshot = playerObj.headshot?.href || placeholderHeadshot;
+
     console.log(`Assigning ${playerObj.displayName} to ${slotId} for Player ${playerNum}.`);
+
     playerData[playerNum].rosterSlots[slotId] = {
         id: playerObj.id,
         displayName: playerObj.displayName,
         originalPosition: playerObj.position?.abbreviation || playerObj.position?.name,
         assignedSlot: slotId,
-        headshot: playerObj.headshot,
+        headshot: safeHeadshot,   // 🟢 Always safe now
         fantasyPoints: null,
         statsData: null
     };
@@ -431,9 +433,6 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
 
     hideSlotSelectionModal();
 
-// Update visuals immediately (don’t switch turn yet)
-updateLayout(true);
-
-
-
+    // Update visuals immediately (don’t switch turn yet)
+    updateLayout(true);
 }

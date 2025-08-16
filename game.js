@@ -502,19 +502,31 @@ const hasRolledButNotPicked = (
 
 if (noTeamsRolledYet && playerData[playerNum].avatar) {
     if (playerNum === gameState.currentPlayer) {
-        // 🎯 Current player (hasn't rolled yet) → show their avatar
+        // 🎯 Current player → always show their avatar on their own client
         stopLogoCycleInElement(playerLogoEl);
         playerLogoEl.src = playerData[playerNum].avatar;
         playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
         playerLogoEl.classList.add('is-avatar');
         document.getElementById(`player${playerNum}-team-name`).textContent =
             `${playerData[playerNum].name} is ready to roll!`;
+
     } else {
-        // 👀 Opponent at very first roll → show cycling
-        startLogoCycleInElement(playerLogoEl, teams, 120);
-        playerLogoEl.classList.remove('is-avatar');
-        document.getElementById(`player${playerNum}-team-name`).textContent =
-            `${playerData[playerNum].name} is rolling...`;
+        // 👀 Opponent’s slot
+        if (gameMode === 'multiplayer' && localPlayerNum !== gameState.currentPlayer) {
+            // On the opponent’s client → show cycling for the current player
+            startLogoCycleInElement(playerLogoEl, teams, 120);
+            playerLogoEl.classList.remove('is-avatar');
+            document.getElementById(`player${playerNum}-team-name`).textContent =
+                `${playerData[playerNum].name} is rolling...`;
+        } else {
+            // On the current player’s own client → just show the opponent’s avatar
+            stopLogoCycleInElement(playerLogoEl);
+            playerLogoEl.src = playerData[playerNum].avatar;
+            playerLogoEl.alt = `${playerData[playerNum].name}'s avatar`;
+            playerLogoEl.classList.add('is-avatar');
+            document.getElementById(`player${playerNum}-team-name`).textContent =
+                `${playerData[playerNum].name} is ready to roll!`;
+        }
     }
 
 } else if (isCurrentPlayerRosterFull && playerData[playerNum].avatar) {

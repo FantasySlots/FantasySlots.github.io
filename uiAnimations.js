@@ -31,38 +31,3 @@ export function hideTeamAnimationOverlay() {
     cyclingLogo.classList.remove('is-avatar'); // Ensure the class is removed when hidden
     document.getElementById('team-animation').style.display = 'none';
 }
-// Start cycling logos inside any <img> element
-export function startLogoCycleInElement(imgEl, teams, speed = 120) {
-    if (!imgEl) return;
-
-    const logos = teams.map(t => t.logo).filter(Boolean);
-    if (logos.length === 0) return;
-
-    let idx = 0;
-
-    // Clear any previous interval
-    if (imgEl._logoCycleInterval) {
-        clearInterval(imgEl._logoCycleInterval);
-    }
-
-    imgEl._logoCycleInterval = setInterval(() => {
-        imgEl.src = logos[idx % logos.length];
-        imgEl.alt = `Cycling NFL logo`;
-        idx++;
-    }, speed);
-}
-
-// Stop cycling and optionally freeze on a final logo
-export function stopLogoCycleInElement(imgEl, finalLogoSrc = null, finalAlt = '') {
-    if (!imgEl) return;
-
-    if (imgEl._logoCycleInterval) {
-        clearInterval(imgEl._logoCycleInterval);
-        imgEl._logoCycleInterval = null;
-    }
-
-    if (finalLogoSrc) {
-        imgEl.src = finalLogoSrc;
-        imgEl.alt = finalAlt || 'NFL Team logo';
-    }
-}

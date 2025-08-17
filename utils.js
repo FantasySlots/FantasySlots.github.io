@@ -24,3 +24,10 @@ export function getRandomElement(array) {
     const randomIndex = Math.floor(Math.random() * array.length);
     return array[randomIndex];
 }
+
+/**
+ * Creates a promise that resolves after a specified number of milliseconds.
+ * @param {number} ms - The number of milliseconds to wait.
+ * @returns {Promise<void>}
+ */
+export const delay = ms => new Promise(res => setTimeout(res, ms));

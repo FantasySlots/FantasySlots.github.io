@@ -22,7 +22,7 @@ export const teams = [
     { id: 'LAC', name: 'Los Angeles Chargers', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lac.png' },
     { id: 'DAL', name: 'Dallas Cowboys', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' },
     { id: 'NYG', name: 'New York Giants', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png' },
-    { id: 'PHI', name: 'Philadelphia Eagles', 'logo': 'https://a.espncdn.com/i/teamlogos/nfl/500/phi.png' },
+    { id: 'PHI', name: 'Philadelphia Eagles', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/phi.png' },
     { id: 'WSH', name: 'Washington Commanders', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png' },
     { id: 'CHI', name: 'Chicago Bears', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/chi.png' },
     { id: 'DET', name: 'Detroit Lions', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/det.png' },

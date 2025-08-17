@@ -2,30 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fantasy Slots - Stats</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0A1128">
+    <title>Fantasy Slots - NFL Rosters</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="landing.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="landing-page-body">
-    <div class="app-container landing-page-container">
+<body class="stats-page-body">
+    <div class="app-container">
         <header class="header">
             <a href="index.html">
                 <img src="https://i.postimg.cc/HLVXjSLh/output-onlinepngtools.png" alt="NFL Fantasy Slots Logo" class="site-logo">
             </a>
-            <p class="subtitle">View Player Stats (Coming Soon!)</p>
+            <p class="subtitle">View NFL Team Rosters & Player Stats</p>
         </header>
 
-        <main class="landing-page-main">
-            <p style="text-align: center; font-size: 1.2rem; color: #94a3b8;">This page is under construction. Check back soon!</p>
-            <div class="landing-options">
-                 <a href="index.html" class="landing-button play-slots-btn">
-                    <span> Back to Home</span>
-                    <div class="btn-shimmer"></div>
-                </a>
-            </div>
+        <main class="stats-main-content">
+            <aside class="team-list-container">
+                <div id="team-list" class="team-list">
+                    <!-- Teams will be populated here by JS -->
+                </div>
+            </aside>
+            <section class="roster-display-container" id="roster-display-container">
+                <div class="initial-message">
+                    <p>Select a team to view their roster.</p>
+                </div>
+                <!-- Roster will be displayed here by JS -->
+            </section>
         </main>
     </div>
+
+    <!-- Player Stats Modal (reused from game) -->
+    <div class="player-stats-modal" id="player-stats-modal">
+        <div class="player-stats-content">
+            <button class="close-stats">&times;</button>
+            <div id="player-stats-details-container">
+                <!-- Stats will be populated here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js",
+        "firebase/database": "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"
+      }
+    }
+    </script>
+    <script type="module" src="stats.js"></script>
+    <!-- We need uiModals for the stats modal to work -->
+    <script type="module" src="uiModals.js"></script>
+
 </body>
 </html>

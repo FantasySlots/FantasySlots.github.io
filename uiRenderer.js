@@ -53,7 +53,7 @@ export function renderAvatarSelectionOptions(playerNum, currentAvatar, avatarLis
 }
 
 // UI Function: Update visibility of inline roster vs. fantasy roster within player section
-export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFantasyRosterFullFn) {
+export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFantasyRosterFullFn, areBothRostersFull) {
     const playerContentArea = document.getElementById(`player${playerNum}-content-area`);
     // Ensure these elements exist using getOrCreateChild, even if they'll be hidden
     const inlineRosterEl = getOrCreateChild(playerContentArea, 'inline-roster');
@@ -80,13 +80,13 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     const teamIsSelected = playerDataForPlayer.team !== null && playerDataForPlayer.team.rosterData;
     const hasDraftedFromCurrentTeam = playerDataForPlayer.draftedPlayers.length > 0;
     
-    // Hide buttons if roster is full OR if a team is selected and waiting for a draft pick.
-   // if (rosterIsFull || (teamIsSelected && !hasDraftedFromCurrentTeam)) {
-     //   teamSelectionEl.style.display = 'none';
-    //} else {
+    // Hide buttons if both rosters are full OR the single player's roster is full OR if a team is selected and waiting for a draft pick.
+    if (areBothRostersFull || rosterIsFull || (teamIsSelected && !hasDraftedFromCurrentTeam)) {
+        teamSelectionEl.style.display = 'none';
+    } else {
         // Show buttons if the roster is NOT full AND (either no team is selected yet, or a player has been drafted).
-      //  teamSelectionEl.style.display = 'flex';
-    //} 
+        teamSelectionEl.style.display = 'flex';
+    }
 
     // Logic to toggle between inline NFL roster and fantasy roster display
     const hasTeamSelected = playerDataForPlayer.team !== null;
@@ -109,28 +109,12 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
 }
 
 // UI Function: Display draft interface (NFL Roster of a chosen team)
-export function displayDraftInterface(
-    playerNum,
-    teamAthletes,
-    playerDataForPlayer,
-    opponentData,
-    isFantasyRosterFullFn,
-    isPlayerPositionUndraftableFn,
-    draftPlayerCallback
-) {
+export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlayer, opponentData, isFantasyRosterFullFn, isPlayerPositionUndraftableFn, draftPlayerCallback) {
     const playerContentArea = document.getElementById(`player${playerNum}-content-area`);
     const draftContainer = getOrCreateChild(playerContentArea, 'inline-roster');
     draftContainer.innerHTML = ''; // Clear previous content before rendering new
 
-    // 🚫 Hide "Roll your team" button / team-selection while drafting
-    const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-    const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-    if (teamSelectionEl) {
-        teamSelectionEl.style.display = 'none';
-    }
-
     const allPlayers = teamAthletes.flatMap(positionGroup => positionGroup.items || []);
-
     
     // NEW: Add message if no players are found for this team
     if (allPlayers.length === 0) {
@@ -187,9 +171,12 @@ export function displayDraftInterface(
                 const playerDiv = document.createElement('div');
                 playerDiv.classList.add('player-draft-card');
                 
+                const fillerHeadshot = 'https://i.postimg.cc/Hxsb5C4T/Chat-GPT-Image-Aug-16-2025-02-34-57-PM.png';
+                const headshotSrc = player.headshot?.href || fillerHeadshot;
+
                 playerDiv.innerHTML = `
                     <div class="player-card-header">
-                        ${player.headshot && player.headshot.href ? `<img class="player-photo" src="${player.headshot.href}" alt="${player.displayName}">` : ''}
+                        <img class="player-photo" src="${headshotSrc}" alt="${player.displayName}">
                         <div class="player-name-text">${player.displayName}</div>
                     </div>
                     <div class="player-meta-text">
@@ -213,26 +200,18 @@ export function displayDraftInterface(
                 } else if (!canDraftFromCurrentTeam || isAlreadyInFantasyRoster) {
                     playerDiv.classList.add('player-draft-card--drafted');
                     draftActionText.textContent = isAlreadyInFantasyRoster ? 'Drafted' : 'Drafted (1/turn)';
-// No event listener for drafted cards
-} else {
-    playerDiv.classList.add('player-draft-card--available');
-    // Attach event listener only to the "Draft" text element
-    draftActionText.addEventListener('click', (event) => {
-        event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
-        draftPlayerCallback(playerNum, player, position);
-
-        // ✅ Re-show "Roll your team" after pick
-        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-        if (teamSelectionEl) {
-            teamSelectionEl.style.display = 'block';
-        }
-    });
-    draftActionText.textContent = 'Draft';
-}
-
-playersList.appendChild(playerDiv);
-
+                    // No event listener for drafted cards
+                } else {
+                    playerDiv.classList.add('player-draft-card--available');
+                    // Attach event listener only to the "Draft" text element
+                    draftActionText.addEventListener('click', (event) => {
+                        event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
+                        draftPlayerCallback(playerNum, player, position);
+                    });
+                    draftActionText.textContent = 'Draft';
+                }
+                
+                playersList.appendChild(playerDiv);
             });
             
             positionDiv.appendChild(playersList);
@@ -289,23 +268,15 @@ playersList.appendChild(playerDiv);
         defOption.classList.add('player-draft-card--drafted');
         draftActionTextDef.textContent = isDefAlreadyInFantasyRoster ? 'Drafted' : 'Drafted (1/turn)';
         // No event listener for drafted cards
-   } else {
-    defOption.classList.add('player-draft-card--available');
-    // Attach event listener only to the "Draft" text element
-    draftActionTextDef.addEventListener('click', (event) => {
-        event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
-        draftPlayerCallback(playerNum, defPlayer, 'DEF');
-
-        // ✅ Re-show "Roll your team" after pick
-        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-        if (teamSelectionEl) {
-            teamSelectionEl.style.display = 'block';
-        }
-    });
-    draftActionTextDef.textContent = 'Draft';
-}
-
+    } else {
+        defOption.classList.add('player-draft-card--available');
+        // Attach event listener only to the "Draft" text element
+        draftActionTextDef.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
+            draftPlayerCallback(playerNum, defPlayer, 'DEF');
+        });
+        draftActionTextDef.textContent = 'Draft';
+    }
     
     defDiv.appendChild(defOption);
     draftContainer.appendChild(defDiv);
@@ -344,10 +315,12 @@ export function displayFantasyRoster(playerNum, playerDataForPlayer, allTeams, i
         slotSpan.textContent = `${slot}:`;
         leftContent.appendChild(slotSpan);
 
-        if (playerInSlot && playerInSlot.headshot && playerInSlot.headshot.href) {
+        if (playerInSlot) {
+            const fillerHeadshot = 'https://i.postimg.cc/Hxsb5C4T/Chat-GPT-Image-Aug-16-2025-02-34-57-PM.png';
+            const headshotSrc = playerInSlot.headshot?.href || fillerHeadshot;
             const img = document.createElement('img');
             img.className = 'player-photo-fantasy';
-            img.src = playerInSlot.headshot.href;
+            img.src = headshotSrc;
             img.alt = playerInSlot.displayName;
             leftContent.appendChild(img);
         }

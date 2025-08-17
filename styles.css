@@ -163,6 +163,130 @@ body {
 
 /* 
 ==============================================
+            STATS PAGE STYLES
+==============================================
+*/
+.stats-page-body {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.stats-main-content {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+}
+
+.team-list-container {
+    flex: 0 0 300px; /* Don't grow, don't shrink, base width 300px */
+    max-height: 75vh;
+    overflow-y: auto;
+    background: rgba(10, 17, 40, 0.95);
+    border: 1px solid rgba(138, 155, 191, 0.2);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+/* Custom scrollbar for team list */
+.team-list-container::-webkit-scrollbar {
+    width: 8px;
+}
+.team-list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.team-list-container::-webkit-scrollbar-thumb {
+    background-color: rgba(138, 155, 191, 0.3);
+    border-radius: 4px;
+}
+
+.team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.team-list-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.team-list-item:hover {
+    background-color: rgba(138, 155, 191, 0.1);
+    transform: translateX(3px);
+}
+
+.team-list-item.selected {
+    background-color: rgba(174, 32, 18, 0.2);
+    border-color: rgba(174, 32, 18, 0.5);
+    font-weight: 600;
+}
+
+.team-list-item img {
+    width: 40px;
+    height: 40px;
+}
+
+.roster-display-container {
+    flex: 1;
+    min-height: 75vh;
+    background: rgba(10, 17, 40, 0.95);
+    border: 1px solid rgba(138, 155, 191, 0.2);
+    border-radius: 1rem;
+    padding: 2rem;
+}
+
+.roster-display-container .initial-message,
+.roster-display-container .loading-message,
+.roster-display-container .error-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 50vh;
+    font-size: 1.5rem;
+    color: #8A9BBF;
+    text-align: center;
+}
+.roster-display-container .error-message {
+    color: #ef4444;
+}
+
+.roster-team-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(138, 155, 191, 0.2);
+}
+.roster-team-header img {
+    width: 80px;
+    height: 80px;
+}
+.roster-team-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.stats-player-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.stats-player-card:hover {
+    transform: translateY(-3px);
+    background: rgba(26, 35, 49, 0.6) !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* 
+==============================================
             GAME PAGE LAYOUT & SECTIONS
 ==============================================
 */
@@ -203,6 +327,13 @@ body {
 .player-section:hover {
     transform: translateY(-5px);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.player-section.non-local-player {
+    opacity: 0.6;
+    pointer-events: none;
+    transform: scale(0.98);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important; /* Override hover/active effects */
 }
 
 .player-section.inactive-turn {
@@ -431,7 +562,8 @@ body {
 }
 
 .select-team-btn,
-.auto-draft-btn {
+.auto-draft-btn,
+.auto-draft-full-btn {
     position: relative;
     flex: 1;
     min-width: 250px;
@@ -463,6 +595,15 @@ body {
     box-shadow: 0 15px 30px rgba(31, 63, 109, 0.4);
 }
 
+.auto-draft-full-btn {
+    background: linear-gradient(135deg, #9ca6ba, #727d94); /* Green */
+    flex-basis: 100%; /* Make this button take the full width */
+}
+.auto-draft-full-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(156, 166, 186, 0.4);
+}
+
 .btn-shimmer {
     position: absolute;
     top: 0;
@@ -475,7 +616,8 @@ body {
 
 .landing-button:hover .btn-shimmer,
 .select-team-btn:hover .btn-shimmer,
-.auto-draft-btn:hover .btn-shimmer {
+.auto-draft-btn:hover .btn-shimmer,
+.auto-draft-full-btn:hover .btn-shimmer {
     left: 100%;
 }
 
@@ -858,6 +1000,36 @@ body {
             RESPONSIVENESS (MEDIA QUERIES)
 ==============================================
 */
+@media (max-width: 900px) {
+    .stats-main-content {
+        flex-direction: column;
+    }
+    .team-list-container {
+        flex-basis: auto;
+        width: 100%;
+        max-height: 250px; /* Make it scrollable horizontally */
+    }
+    .team-list {
+        flex-direction: row; /* Horizontal scrolling for teams on mobile */
+        overflow-x: auto;
+        padding-bottom: 1rem; /* Space for scrollbar */
+    }
+    .team-list-item {
+        flex-direction: column;
+        min-width: 100px;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    .roster-team-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    .roster-team-header h2 {
+        font-size: 2rem;
+    }
+}
+
 @media (max-width: 768px) {
     .players-container, .players-container.single-player-view, .players-container.two-player-view {
         grid-template-columns: 1fr;
@@ -869,7 +1041,7 @@ body {
     .player-stats-content h2 { font-size: 1.5rem; }
     .inline-roster > div > div { grid-template-columns: repeat(2, 1fr); }
     .team-selection { flex-direction: column; }
-    .select-team-btn, .auto-draft-btn { min-width: unset; width: 100%; }
+    .select-team-btn, .auto-draft-btn, .auto-draft-full-btn { min-width: unset; width: 100%; }
     .auto-draft-btn { margin-top: 1rem; }
     .name-input-container { flex-direction: column; align-items: stretch; }
     .name-input, .confirm-name-btn { width: 100%; margin-bottom: 0.75rem; }
@@ -881,10 +1053,6 @@ body {
     .avatar-selection-modal-content .modal-title { font-size: 1.5rem; }
     .avatar-options-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 0.75rem; }
     .avatar-option { width: 50px; height: 50px; }
-    
-    /* Landing page on small screens */
-    .landing-page-container { padding: 1.5rem 1rem; }
-    .landing-button { font-size: 1.2rem; padding: 1rem 1.5rem; }
 }
 
 @media (max-width: 480px) {
@@ -892,3 +1060,16 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+@media (hover: none) {
+    .landing-button:hover, .select-team-btn:hover, .auto-draft-btn:hover, .reset-btn:hover { transform: none; box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
+
+img { max-width: 100%; height: auto; }
+*:focus { outline-offset: 2px; }
+html, body { -webkit-tap-highlight-color: transparent; }
+input, button { font-size: 16px; } /* prevent iOS zoom on focus */

@@ -3,7 +3,7 @@
  * Contains the core game logic for team selection, drafting, and player state resets.
  */
 import { gameState, playerData, isFantasyRosterFull, resetGameState, switchTurn } from './playerState.js';
-import { shuffleArray, getRandomElement } from './utils.js';
+import { shuffleArray, getRandomElement, delay } from './utils.js';
 import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
 import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';
 import { teams } from './data.js';
@@ -126,19 +126,12 @@ export async function autoDraft(playerNum) {
         return;
     }
 
-    // 🔴 Mark as auto-drafting so updateLayout knows
-    playerData[playerNum].isAutoDrafting = true;
-    updateLayout(false);
-
-    // Show initial animation overlay
     showTeamAnimationOverlay('Auto-drafting a player...');
 
-    const animationDuration = 3000; // 3 seconds total
-    
-    // Animate through player headshots while searching
-    let animateInterval;
-    const headshotsForAnimation = [];
+    const animationDuration = 3000;
+    let headshotsForAnimation = [];
     let animationTeamIndex = 0;
+    let headshotIndex = 0;
 
     const fetchHeadshotsForAnimation = async () => {
         try {
@@ -150,7 +143,7 @@ export async function autoDraft(playerNum) {
                     .flatMap(pg => pg.items || [])
                     .map(p => p.headshot?.href)
                     .filter(Boolean);
-                if(newHeadshots.length > 0) {
+                if (newHeadshots.length > 0) {
                     headshotsForAnimation.push(...newHeadshots);
                 }
             }
@@ -160,15 +153,12 @@ export async function autoDraft(playerNum) {
         animationTeamIndex++;
     };
 
-    // Pre-fetch some headshots to start
     await fetchHeadshotsForAnimation();
 
-    let headshotIndex = 0;
-    animateInterval = setInterval(() => {
+    const animateInterval = setInterval(() => {
         if (headshotIndex >= headshotsForAnimation.length - 5) {
             fetchHeadshotsForAnimation();
         }
-
         if (headshotsForAnimation.length > 0) {
             const currentHeadshot = headshotsForAnimation[headshotIndex % headshotsForAnimation.length];
             showTeamAnimationOverlay('Searching for a player...', currentHeadshot, false);
@@ -180,7 +170,9 @@ export async function autoDraft(playerNum) {
         }
     }, 150);
 
-    setTimeout(async () => {
+    // This promise will handle the core drafting logic
+    const draftingPromise = (async () => {
+        await delay(animationDuration - 1500); // Wait for part of the animation
         clearInterval(animateInterval);
 
         try {
@@ -191,36 +183,29 @@ export async function autoDraft(playerNum) {
             const otherPlayerNum = playerNum === 1 ? 2 : 1;
             const opponentRosterIds = new Set(Object.values(playerData[otherPlayerNum].rosterSlots).filter(p => p).map(p => p.id));
             const ownRosterIds = new Set(Object.values(playerData[playerNum].rosterSlots).filter(p => p).map(p => p.id));
-
             const maxAttempts = teams.length * 2;
             let attempts = 0;
-            let randomTeam = null;
 
             while (!draftedPlayer && attempts < maxAttempts) {
                 attempts++;
-                randomTeam = getRandomElement(teams);
-                
+                const randomTeam = getRandomElement(teams);
                 const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
                 const data = await response.json();
                 if (!data.athletes) continue;
 
                 let teamPlayers = data.athletes.flatMap(positionGroup => positionGroup.items || []);
                 const defPlayer = {
-                    id: `DEF-${randomTeam.id}`,
-                    displayName: randomTeam.name,
+                    id: `DEF-${randomTeam.id}`, displayName: randomTeam.name,
                     position: { name: 'Defense', abbreviation: 'DEF' },
                     headshot: { href: randomTeam.logo }
                 };
                 teamPlayers.push(defPlayer);
-
                 shuffleArray(teamPlayers);
 
                 for (const player of teamPlayers) {
                     if (player.position?.abbreviation === 'PK') player.position.abbreviation = 'K';
-                    
                     const isDrafted = opponentRosterIds.has(player.id) || ownRosterIds.has(player.id);
                     if (isDrafted) continue;
-
                     availableSlot = findAvailableSlotForPlayer(playerNum, player);
                     if (availableSlot) {
                         chosenPlayer = player;
@@ -231,61 +216,155 @@ export async function autoDraft(playerNum) {
             }
 
             if (chosenPlayer && availableSlot) {
-                // ✅ Sanitize and attach the drafted-from team
-                playerData[playerNum].team = {
-                    id: randomTeam.id ?? null,
-                    name: randomTeam.displayName || randomTeam.name || null,
-                    abbreviation: randomTeam.abbreviation ?? null,
-                    logo: randomTeam.logo ?? null
-                };
-
                 const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
-                const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
+                const fillerHeadshot = 'https://i.postimg.cc/Hxsb5C4T/Chat-GPT-Image-Aug-16-2025-02-34-57-PM.png';
+                const headshotSrc = chosenPlayer.headshot?.href || fillerHeadshot;
                 showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
-
+                
                 playerData[playerNum].rosterSlots[availableSlot] = {
-                    id: chosenPlayer.id,
-                    displayName: chosenPlayer.displayName,
+                    id: chosenPlayer.id, displayName: chosenPlayer.displayName,
                     originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
-                    assignedSlot: availableSlot,
-                    headshot: chosenPlayer.headshot,
-                    fantasyPoints: null,
-                    statsData: null
+                    assignedSlot: availableSlot, headshot: chosenPlayer.headshot,
+                    fantasyPoints: null, statsData: null
                 };
-
-                playerData[playerNum].draftedPlayers = [{
-                    id: chosenPlayer.id,
-                    assignedSlot: availableSlot
-                }];
-
+                
+                playerData[playerNum].team = null;
+                playerData[playerNum].draftedPlayers = [];
                 localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
 
-                setTimeout(() => {
-                    hideTeamAnimationOverlay();
-                    playerData[playerNum].isAutoDrafting = false; // 🟢 clear flag
-                    updateLayout(true);
-                }, 1500);
+                await delay(1500);
+                hideTeamAnimationOverlay();
+                updateLayout(true);
             } else {
                 showTeamAnimationOverlay(`No draftable player found! Try again.`);
-                setTimeout(() => {
-                    hideTeamAnimationOverlay();
-                    playerData[playerNum].isAutoDrafting = false; // 🟢 clear flag
-                    updateLayout(false); 
-                }, 1500);
+                await delay(1500);
+                hideTeamAnimationOverlay();
+                updateLayout(true);
             }
-
         } catch (error) {
             console.error('Error during auto-draft:', error);
             showTeamAnimationOverlay('Auto-draft failed!');
-            setTimeout(() => {
-                hideTeamAnimationOverlay();
-                playerData[playerNum].isAutoDrafting = false; // 🟢 clear flag
-                updateLayout(false);
-            }, 1500);
+            await delay(1500);
+            hideTeamAnimationOverlay();
+            updateLayout(false);
         }
-    }, animationDuration - 1500);
+    })();
+    
+    await draftingPromise; // Wait for the whole process to complete
 }
 
+/**
+ * NEW: Handles auto-drafting a full roster for a player.
+ * Fills all empty slots with random, available players.
+ * @param {number} playerNum - The player number (1 or 2).
+ */
+export async function autoDraftFullRoster(playerNum) {
+    if (playerNum !== gameState.currentPlayer) {
+        alert("It's not your turn!");
+        return;
+    }
+    if (!playerData[playerNum].name) {
+        alert('Please enter your name first!');
+        return;
+    }
+    if (isFantasyRosterFull(playerNum)) {
+        alert('Your fantasy roster is already full!');
+        return;
+    }
+
+    showTeamAnimationOverlay('Auto-drafting full roster...');
+    await delay(200); // Short delay to allow overlay to show
+
+    try {
+        const roster = playerData[playerNum].rosterSlots;
+        const emptySlots = Object.keys(roster).filter(slot => !roster[slot]);
+
+        const otherPlayerNum = playerNum === 1 ? 2 : 1;
+        const opponentRosterIds = new Set(Object.values(playerData[otherPlayerNum].rosterSlots).filter(p => p).map(p => p.id));
+        const ownRosterIds = new Set(Object.values(playerData[playerNum].rosterSlots).filter(p => p).map(p => p.id));
+        const allDraftedIds = new Set([...opponentRosterIds, ...ownRosterIds]);
+
+        const allPlayersPromises = teams.map(team =>
+            fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`)
+            .then(res => res.json())
+            .catch(err => {
+                console.warn(`Failed to fetch roster for ${team.name}`, err);
+                return null;
+            })
+        );
+
+        const allRosters = await Promise.all(allPlayersPromises);
+
+        let masterPlayerPool = [];
+        allRosters.forEach((rosterData, index) => {
+            if (rosterData && rosterData.athletes) {
+                const team = teams[index];
+                masterPlayerPool.push(...rosterData.athletes.flatMap(group => group.items || []));
+                masterPlayerPool.push({
+                    id: `DEF-${team.id}`,
+                    displayName: team.name,
+                    position: { name: 'Defense', abbreviation: 'DEF' },
+                    headshot: { href: team.logo }
+                });
+            }
+        });
+
+        shuffleArray(masterPlayerPool);
+
+        for (const slotId of emptySlots) {
+            for (let i = 0; i < masterPlayerPool.length; i++) {
+                const player = masterPlayerPool[i];
+
+                if (allDraftedIds.has(player.id)) {
+                    continue;
+                }
+
+                let originalPosition = player.position?.abbreviation || player.position?.name;
+                if (originalPosition === 'PK') originalPosition = 'K';
+
+                const positionMap = {
+                    'QB': ['QB'], 'RB': ['RB'], 'WR1': ['WR'], 'WR2': ['WR'], 'TE': ['TE'],
+                    'K': ['K'], 'DEF': ['DEF'], 'Flex': ['RB', 'WR', 'TE']
+                };
+
+                if (positionMap[slotId] && positionMap[slotId].includes(originalPosition)) {
+                    playerData[playerNum].rosterSlots[slotId] = {
+                        id: player.id, displayName: player.displayName,
+                        originalPosition: originalPosition, assignedSlot: slotId,
+                        headshot: player.headshot, fantasyPoints: null, statsData: null
+                    };
+                    allDraftedIds.add(player.id);
+                    break;
+                }
+            }
+        }
+
+        const finalAvatar = playerData[playerNum].avatar || 'https://www.svgrepo.com/download/3514/american-football.svg';
+        showTeamAnimationOverlay('Roster Complete!', finalAvatar, true);
+
+        playerData[playerNum].team = null;
+        playerData[playerNum].draftedPlayers = [];
+        localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+
+        await delay(1500);
+        hideTeamAnimationOverlay();
+        updateLayout(true);
+
+    } catch (error) {
+        console.error('Error during auto-draft full roster:', error);
+        showTeamAnimationOverlay('Auto-draft failed!');
+        await delay(1500);
+        hideTeamAnimationOverlay();
+        updateLayout(false);
+    }
+}
+
+/**
+ * Initiates the drafting process for a selected player.
+ * @param {number} playerNum - The player number (1 or 2).
+ * @param {object} player - The NFL player object to draft.
+ * @param {string} originalPosition - The player's original position (e.g., 'QB', 'RB', 'WR', 'TE', 'K', 'DEF').
+ */
 export function draftPlayer(playerNum, player, originalPosition) {
     if (playerNum !== gameState.currentPlayer) {
         alert("It's not your turn!");
@@ -416,13 +495,10 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
     // If all checks pass, assign the player
     console.log(`Assigning ${playerObj.displayName} to ${slotId} for Player ${playerNum}.`);
     playerData[playerNum].rosterSlots[slotId] = {
-        id: playerObj.id,
-        displayName: playerObj.displayName,
+        id: playerObj.id, displayName: playerObj.displayName,
         originalPosition: playerObj.position?.abbreviation || playerObj.position?.name,
-        assignedSlot: slotId,
-        headshot: playerObj.headshot,
-        fantasyPoints: null,
-        statsData: null
+        assignedSlot: slotId, headshot: playerObj.headshot,
+        fantasyPoints: null, statsData: null
     };
 
     playerData[playerNum].draftedPlayers.push({ id: playerObj.id, assignedSlot: slotId });

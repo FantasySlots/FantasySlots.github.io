@@ -123,19 +123,11 @@ export function displayDraftInterface(
     draftContainer.innerHTML = ''; // Clear previous content before rendering new
 
     // 🚫 Hide "Roll your team" button / team-selection while drafting
-    // 🚫 Handle team-selection button visibility
-const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-if (teamSelectionEl) {
-    if (isFantasyRosterFullFn(playerNum)) {
-        // Hide permanently if roster is full
-        teamSelectionEl.style.display = 'none';
-    } else {
-        // Hide only during draft interface
+    const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+    const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+    if (teamSelectionEl) {
         teamSelectionEl.style.display = 'none';
     }
-}
-
 
     const allPlayers = teamAthletes.flatMap(positionGroup => positionGroup.items || []);
 
@@ -190,26 +182,23 @@ if (teamSelectionEl) {
             const playersList = document.createElement('div');
             playersList.style.display = 'grid';
             playersList.style.gap = '0.5rem';
-        positionGroups[position].forEach(player => {
-    const playerDiv = document.createElement('div');
-    playerDiv.classList.add('player-draft-card');
-    
-    // Define the safe headshot image URL here, before using it in innerHTML
-    const safeHeadshot = player.headshot?.href || PLACEHOLDER_HEADSHOT;
-
-    // Set the player div's innerHTML correctly using a template literal
-    playerDiv.innerHTML = `
-        <div class="player-card-header">
-            <img class="player-photo" src="${safeHeadshot}" alt="${player.displayName}">
-            <div class="player-name-text">${player.displayName}</div>
-        </div>
-        <div class="player-meta-text">
-            <span>${player.position?.name || ''}</span>
-            <span class="draft-action-text">Draft</span>
-        </div>
-    `;
-    
-    const draftActionText = playerDiv.querySelector('.draft-action-text');
+            
+            positionGroups[position].forEach(player => {
+                const playerDiv = document.createElement('div');
+                playerDiv.classList.add('player-draft-card');
+                
+                playerDiv.innerHTML = `
+                    <div class="player-card-header">
+                        ${player.headshot && player.headshot.href ? `<img class="player-photo" src="${player.headshot.href}" alt="${player.displayName}">` : ''}
+                        <div class="player-name-text">${player.displayName}</div>
+                    </div>
+                    <div class="player-meta-text">
+                        <span>${player.position?.name || ''}</span>
+                        <span class="draft-action-text">Draft</span>
+                    </div>
+                `;
+                
+                const draftActionText = playerDiv.querySelector('.draft-action-text');
 
                 const isAlreadyInFantasyRoster = Object.values(playerDataForPlayer.rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
                 const isDraftedByOpponent = opponentDraftedIds.has(player.id);
@@ -232,13 +221,12 @@ if (teamSelectionEl) {
         event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
         draftPlayerCallback(playerNum, player, position);
 
-       // ✅ Re-show "Roll your team" after pick, unless roster is full
-const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-if (teamSelectionEl && !isFantasyRosterFullFn(playerNum)) {
-    teamSelectionEl.style.display = 'block';
-}
-
+        // ✅ Re-show "Roll your team" after pick
+        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+        if (teamSelectionEl) {
+            teamSelectionEl.style.display = 'block';
+        }
     });
     draftActionText.textContent = 'Draft';
 }
@@ -308,13 +296,12 @@ playersList.appendChild(playerDiv);
         event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
         draftPlayerCallback(playerNum, defPlayer, 'DEF');
 
-       // ✅ Re-show "Roll your team" after pick, unless roster is full
-const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
-const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
-if (teamSelectionEl && !isFantasyRosterFullFn(playerNum)) {
-    teamSelectionEl.style.display = 'block';
-}
-
+        // ✅ Re-show "Roll your team" after pick
+        const teamDisplayEl = document.getElementById(`player${playerNum}-display`);
+        const teamSelectionEl = teamDisplayEl.querySelector('.team-selection');
+        if (teamSelectionEl) {
+            teamSelectionEl.style.display = 'block';
+        }
     });
     draftActionTextDef.textContent = 'Draft';
 }

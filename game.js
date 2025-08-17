@@ -4,7 +4,6 @@
  */
 
 // Import from new modular files
-import { ref, set, update, onValue, get, onDisconnect, serverTimestamp, push } from "firebase/database";
 import { startLogoCycleInElement, stopLogoCycleInElement } from './uiAnimations.js';
 import { gameState, playerData, isFantasyRosterFull, isPlayerPositionUndraftable, switchTurn, setGamePhase, updateLocalPlayerData } from './playerState.js';
 import { getOrCreateChild, updatePlayerContentDisplay, displayDraftInterface, displayFantasyRoster, renderPlayerAvatar } from './uiRenderer.js';
@@ -20,7 +19,7 @@ import { teams } from './data.js';
 
 // NEW: Import Firebase
 import { db } from './firebase.js';
-
+import { ref, onValue, set, get, update, onDisconnect, serverTimestamp } from "firebase/database";
 
 // NEW: Global variables for multiplayer
 let gameMode = 'local';
@@ -202,72 +201,24 @@ async function setupMultiplayerGame() {
         // This client is already Player 2 (reconnecting).
         localPlayerNum = 2;
     } else {
-    // Both slots are taken by other clients → join as spectator
-    localPlayerNum = null; // spectator has no playerNum
-    const spectatorsRef = ref(db, `games/${roomId}/spectators`);
-    const newSpectatorRef = push(spectatorsRef);
-    await set(newSpectatorRef, { clientId, connected: true, lastSeen: serverTimestamp() });
+        // Both slots are taken by other clients.
+        alert("This game room is full!");
+        window.location.href = 'index.html';
+        return;
+    }
 
-    console.log("Joined as spectator");
-}
-// Now, set the playerRef and update Firebase based on the determined localPlayerNum
-if (localPlayerNum === 1) {
-    playerRef = ref(db, `games/${roomId}/players/player1`);
-    await update(ref(db, `games/${roomId}/players`), {
-        player1: { clientId, connected: true, lastSeen: serverTimestamp() }
-    });
+    // Now, set the playerRef and update Firebase based on the determined localPlayerNum
+    if (localPlayerNum === 1) {
+        playerRef = ref(db, `games/${roomId}/players/player1`);
+        await update(ref(db, `games/${roomId}/players`), { player1: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
+    } else { // localPlayerNum is 2
+        playerRef = ref(db, `games/${roomId}/players/player2`);
+        await update(ref(db, `games/${roomId}/players`), { player2: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
+    }
+    
     await onDisconnect(playerRef).update({ connected: false });
 
-    console.log("You are Player 1");
-
-} else if (localPlayerNum === 2) {
-    playerRef = ref(db, `games/${roomId}/players/player2`);
-    await update(ref(db, `games/${roomId}/players`), {
-        player2: { clientId, connected: true, lastSeen: serverTimestamp() }
-    });
-    await onDisconnect(playerRef).update({ connected: false });
-
-    console.log("You are Player 2");
-
-} else {
-    // 🎥 Spectator (not Player 1 or 2)
-    playerRef = null;
-    const spectatorsRef = ref(db, `games/${roomId}/spectators`);
-    const newSpectatorRef = push(spectatorsRef);
-    await set(newSpectatorRef, {
-        clientId,
-        connected: true,
-        lastSeen: serverTimestamp()
-    });
-    await onDisconnect(newSpectatorRef).update({ connected: false });
-
-    console.log("You are a Spectator");
-
-    // 🔒 Disable all player controls for spectators
-    [
-        'player1-name-confirm-btn',
-        'player1-select-team-btn',
-        'player1-auto-draft-btn',
-        'player1-reset-btn',
-        'player2-name-confirm-btn',
-        'player2-select-team-btn',
-        'player2-auto-draft-btn',
-        'player2-reset-btn'
-    ].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.disabled = true;
-            el.style.opacity = "0.5";   // visually indicate disabled
-            el.style.pointerEvents = "none";
-        }
-    });
-
-    // Maybe also hide spectator’s own share link since they can’t host
-    const shareContainer = document.getElementById('share-link-container');
-    if (shareContainer) shareContainer.style.display = 'none';
-}
-
-
+    console.log(`You are Player ${localPlayerNum}`);
     
     // Update share link UI
     document.getElementById('share-link-container').style.display = 'flex';

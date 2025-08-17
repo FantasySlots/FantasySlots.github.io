@@ -8,7 +8,7 @@ import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
 import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';
 import { teams } from './data.js';
 import { updateLayout } from './game.js';
-import { PLACEHOLDER_HEADSHOT } from './playerState.js';
+
 /**
  * Handles the process of selecting a random NFL team.
  * @param {number} playerNum - The player number (1 or 2).
@@ -239,11 +239,8 @@ export async function autoDraft(playerNum) {
                     logo: randomTeam.logo ?? null
                 };
 
-
-
-const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
-const headshotSrc = chosenPlayer.headshot?.href || PLACEHOLDER_HEADSHOT;
-
+                const headshotIsAvatar = !chosenPlayer.headshot?.href || chosenPlayer.originalPosition === 'DEF';
+                const headshotSrc = chosenPlayer.headshot?.href || playerData[playerNum].avatar;
                 showTeamAnimationOverlay(`Drafted: ${chosenPlayer.displayName}`, headshotSrc, headshotIsAvatar);
 
                 playerData[playerNum].rosterSlots[availableSlot] = {
@@ -251,7 +248,7 @@ const headshotSrc = chosenPlayer.headshot?.href || PLACEHOLDER_HEADSHOT;
                     displayName: chosenPlayer.displayName,
                     originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
                     assignedSlot: availableSlot,
-                     headshot: chosenPlayer.headshot?.href || PLACEHOLDER_HEADSHOT,  // 🟢 safe
+                    headshot: chosenPlayer.headshot,
                     fantasyPoints: null,
                     statsData: null
                 };
@@ -375,9 +372,12 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
             id: t.id ?? null,
             name: t.name ?? null,
             abbreviation: t.abbreviation ?? null,
-            logo: t.logo ?? null
+             logo: t.logo ?? null
         };
     }
+
+
+
 
     const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
     if (isAlreadyInFantasyRoster) {
@@ -431,6 +431,9 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
 
     hideSlotSelectionModal();
 
-    // Update visuals immediately (don’t switch turn yet)
-    updateLayout(true);
+// Update visuals immediately (don’t switch turn yet)
+updateLayout(true);
+
+
+
 }

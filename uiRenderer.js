@@ -190,34 +190,26 @@ if (teamSelectionEl) {
             const playersList = document.createElement('div');
             playersList.style.display = 'grid';
             playersList.style.gap = '0.5rem';
-            
-            positionGroups[position].forEach(player => {
-                const playerDiv = document.createElement('div');
-                playerDiv.classList.add('player-draft-card');
-                
-                playerDiv.innerHTML = `
-                    <div class="player-card-header">
-                        const safeHeadshot = player.headshot?.href || PLACEHOLDER_HEADSHOT;
-playerDiv.innerHTML = `
-    <div class="player-card-header">
-        <img class="player-photo" src="${safeHeadshot}" alt="${player.displayName}">
-        <div class="player-name-text">${player.displayName}</div>
-    </div>
-    <div class="player-meta-text">
-        <span>${player.position?.name || ''}</span>
-        <span class="draft-action-text">Draft</span>
-    </div>
-`;
+        positionGroups[position].forEach(player => {
+    const playerDiv = document.createElement('div');
+    playerDiv.classList.add('player-draft-card');
+    
+    // Define the safe headshot image URL here, before using it in innerHTML
+    const safeHeadshot = player.headshot?.href || PLACEHOLDER_HEADSHOT;
 
-                        <div class="player-name-text">${player.displayName}</div>
-                    </div>
-                    <div class="player-meta-text">
-                        <span>${player.position?.name || ''}</span>
-                        <span class="draft-action-text">Draft</span>
-                    </div>
-                `;
-                
-                const draftActionText = playerDiv.querySelector('.draft-action-text');
+    // Set the player div's innerHTML correctly using a template literal
+    playerDiv.innerHTML = `
+        <div class="player-card-header">
+            <img class="player-photo" src="${safeHeadshot}" alt="${player.displayName}">
+            <div class="player-name-text">${player.displayName}</div>
+        </div>
+        <div class="player-meta-text">
+            <span>${player.position?.name || ''}</span>
+            <span class="draft-action-text">Draft</span>
+        </div>
+    `;
+    
+    const draftActionText = playerDiv.querySelector('.draft-action-text');
 
                 const isAlreadyInFantasyRoster = Object.values(playerDataForPlayer.rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === player.id);
                 const isDraftedByOpponent = opponentDraftedIds.has(player.id);

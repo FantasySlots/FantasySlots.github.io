@@ -32,17 +32,29 @@ let isSyncing = false; // Flag to prevent feedback loops
  * NEW: Sync local state with Firebase.
  * This function is the single point of truth for updating the remote state.
  */
-async function syncWithFirebase(playerNum) {
+async function syncWithFirebase() {
      if (gameMode !== 'multiplayer' || !gameRef) return;
 
   isSyncing = true;
-  console.log("SYNCING to Firebase:", { gameState, playerData });
+  
+  // CRITICAL: Sanitize playerData before syncing to remove large, non-serializable data and undefined values.
+  const sanitizedPlayerData = JSON.parse(JSON.stringify(playerData, (key, value) => {
+      return value === undefined ? null : value;
+  }));
+  
+  for (const playerNum in sanitizedPlayerData) {
+      if (sanitizedPlayerData[playerNum].team && sanitizedPlayerData[playerNum].team.rosterData) {
+          delete sanitizedPlayerData[playerNum].team.rosterData;
+      }
+  }
+
+  console.log("SYNCING to Firebase:", { gameState, playerData: sanitizedPlayerData });
 
   try {
     // Always sync the full game state and player data to ensure consistency
     await update(gameRef, {
       gameState: { ...gameState },
-      playerData: { ...playerData }
+      playerData: sanitizedPlayerData
     });
   } catch (error) {
     console.error("Firebase sync failed:", error);
@@ -120,9 +132,7 @@ function withFirebaseSync(actionFn) {
 
     await actionFn(...args);
     // After the action is complete, sync the state.
-    // The playerNum argument here is just to fulfill the original contract,
-    // but the new syncWithFirebase syncs everything for robustness.
-    await syncWithFirebase(playerNum);
+    await syncWithFirebase();
   };
 }
 
@@ -369,7 +379,7 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         if (!isFantasyRosterFull(otherPlayerNum)) {
             // In multiplayer, only the current player can switch the turn
             if (gameMode !== 'multiplayer' || localPlayerNum === gameState.currentPlayer) {
-                switchTurn(syncWithFirebase, localPlayerNum);
+                switchTurn(syncWithFirebase);
             } else if (gameMode === 'local') {
                 switchTurn();
             }
@@ -377,8 +387,14 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
     }
     
     const areBothRostersFull = isFantasyRosterFull(1) && isFantasyRosterFull(2);
-    if (areBothRostersFull) {
+    if (areBothRostersFull && gameState.phase !== 'COMPLETE') {
         setGamePhase('COMPLETE');
+        // NEW: Explicitly sync when the game is marked as complete.
+        if (gameMode === 'multiplayer') {
+            // Use a small delay to allow the last action's sync to potentially complete,
+            // preventing race conditions, then force a final sync.
+            setTimeout(syncWithFirebase, 300);
+        }
     }
 
     const playersContainer = document.querySelector('.players-container');

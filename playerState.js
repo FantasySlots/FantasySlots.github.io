@@ -67,15 +67,13 @@ export function updateLocalPlayerData(remotePlayerData) {
 }
 
 
-
-
 /**
  * NEW: Switches the current player turn.
  */
 export function switchTurn(syncCallback, playerNum) {
   gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
   if (typeof syncCallback === 'function') {
-    syncCallback(playerNum); // still only sync current player branch
+    syncCallback(); 
   }
 }
 

@@ -91,20 +91,28 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     // Logic to toggle between inline NFL roster and fantasy roster display
     const hasTeamSelected = playerDataForPlayer.team !== null;
     const hasAnyDraftedPlayer = Object.values(playerDataForPlayer.rosterSlots).some(slot => slot !== null);
+    
+    const playersContainer = document.querySelector('.players-container');
 
     if (hasTeamSelected && !hasDraftedFromCurrentTeam) {
         // Show inline roster (draft interface) if a team is selected and no player drafted from it yet.
         inlineRosterEl.style.display = 'block';
         fantasyRosterEl.style.display = 'none';
+        // Add class to expand the view
+        playersContainer.classList.add('drafting-view', `p${playerNum}-drafting`);
     } else if (hasAnyDraftedPlayer) {
         // If any player has been drafted (either manually or via auto-draft), show the fantasy roster.
         inlineRosterEl.style.display = 'none';
         fantasyRosterEl.style.display = 'block';
+        // Remove class to restore normal view
+        playersContainer.classList.remove('drafting-view', 'p1-drafting', 'p2-drafting');
     } else {
         // If no team is selected yet, and no players drafted, hide both roster views.
         // The "Roll Team" buttons will be visible in this state.
         inlineRosterEl.style.display = 'none';
         fantasyRosterEl.style.display = 'none';
+         // Remove class to restore normal view
+        playersContainer.classList.remove('drafting-view', 'p1-drafting', 'p2-drafting');
     }
 }
 

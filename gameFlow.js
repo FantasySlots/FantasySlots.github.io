@@ -224,7 +224,8 @@ export async function autoDraft(playerNum) {
                 playerData[playerNum].rosterSlots[availableSlot] = {
                     id: chosenPlayer.id, displayName: chosenPlayer.displayName,
                     originalPosition: chosenPlayer.position?.abbreviation || chosenPlayer.position?.name,
-                    assignedSlot: availableSlot, headshot: chosenPlayer.headshot,
+                    assignedSlot: availableSlot, 
+                    headshot: chosenPlayer.headshot || null, // Ensure headshot is not undefined
                     fantasyPoints: null, statsData: null
                 };
                 
@@ -331,7 +332,8 @@ export async function autoDraftFullRoster(playerNum) {
                     playerData[playerNum].rosterSlots[slotId] = {
                         id: player.id, displayName: player.displayName,
                         originalPosition: originalPosition, assignedSlot: slotId,
-                        headshot: player.headshot, fantasyPoints: null, statsData: null
+                        headshot: player.headshot || null, // Ensure headshot is not undefined
+                        fantasyPoints: null, statsData: null
                     };
                     allDraftedIds.add(player.id);
                     break;
@@ -410,18 +412,6 @@ export function draftPlayer(playerNum, player, originalPosition) {
         else if (originalPosition === 'DEF') targetSlot = 'DEF';
 
         if (targetSlot) {
-            // 🚨 sanitize team before persisting to Firebase
-           if (playerData[playerNum].team && playerData[playerNum].team.rosterData) {
-    const t = playerData[playerNum].team;
-    playerData[playerNum].team = {
-        id: t.id ?? null,
-        name: t.name ?? null,
-        abbreviation: t.abbreviation ?? null,  // 🚨 avoid undefined
-         logo: t.logo ?? null
-    };
-}
-
-
             assignPlayerToSlot(playerNum, player, targetSlot);
         } else {
             console.error(`Attempted to draft ${player.displayName} (${originalPosition}) to an unknown slot.`);
@@ -444,19 +434,10 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
         return;
     }
 
-    // 🚨 sanitize team before syncing so rosterData/$ref never leaks to Firebase
+    // This sanitization is good practice locally, but the main fix is in syncWithFirebase.
     if (playerData[playerNum].team && playerData[playerNum].team.rosterData) {
-        const t = playerData[playerNum].team;
-        playerData[playerNum].team = {
-            id: t.id ?? null,
-            name: t.name ?? null,
-            abbreviation: t.abbreviation ?? null,
-             logo: t.logo ?? null
-        };
+        delete playerData[playerNum].team.rosterData;
     }
-
-
-
 
     const isAlreadyInFantasyRoster = Object.values(playerData[playerNum].rosterSlots).some(slotPlayer => slotPlayer && slotPlayer.id === playerObj.id);
     if (isAlreadyInFantasyRoster) {
@@ -497,7 +478,8 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
     playerData[playerNum].rosterSlots[slotId] = {
         id: playerObj.id, displayName: playerObj.displayName,
         originalPosition: playerObj.position?.abbreviation || playerObj.position?.name,
-        assignedSlot: slotId, headshot: playerObj.headshot,
+        assignedSlot: slotId, 
+        headshot: playerObj.headshot || null, // Ensure headshot is not undefined
         fantasyPoints: null, statsData: null
     };
 

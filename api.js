@@ -4,7 +4,7 @@
  */
 
 // TANK01 API Constants
-const TANK_API_KEY = '476ac2103dmsh8df3f77eb300709p1b924bjsn0c06d9d61916';
+const TANK_API_KEY = '1eb53dd891msh0fb7989313af6d1p1655b2jsn140053348c78';
 const TANK_API_HOST = 'tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com';
 
 /**

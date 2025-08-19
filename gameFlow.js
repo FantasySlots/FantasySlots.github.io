@@ -3,7 +3,7 @@
  * Contains the core game logic for team selection, drafting, and player state resets.
  */
 import { gameState, playerData, isFantasyRosterFull, resetGameState, switchTurn } from './playerState.js';
-import { shuffleArray, getRandomElement, delay } from './utils.js';
+import { shuffleArray, getRandomElement, delay, getCachedData, setCachedData } from './utils.js';
 import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
 import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';
 import { teams } from './data.js';
@@ -59,11 +59,21 @@ export async function selectTeam(playerNum) {
             
             // Fetch roster and display draft interface
             try {
-                const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
-                const data = await response.json();
+                const rosterCacheKey = `espn-roster-${randomTeam.id}`;
+                const TTL = 10 * 60 * 1000; // 10 minutes
+                let rosterData = getCachedData(rosterCacheKey);
+
+                if (!rosterData) {
+                    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
+                    const data = await response.json();
+                    if (data.athletes) {
+                        rosterData = data.athletes;
+                        setCachedData(rosterCacheKey, rosterData, TTL);
+                    }
+                }
                 
-                if (data.athletes) {
-                    playerData[playerNum].team.rosterData = data.athletes; 
+                if (rosterData) {
+                    playerData[playerNum].team.rosterData = rosterData; 
                     localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum])); // Save state after team selection
                 }
             } catch (error) {
@@ -136,10 +146,21 @@ export async function autoDraft(playerNum) {
     const fetchHeadshotsForAnimation = async () => {
         try {
             const team = teams[animationTeamIndex % teams.length];
-            const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`);
-            const data = await response.json();
-            if (data.athletes) {
-                const newHeadshots = data.athletes
+            const rosterCacheKey = `espn-roster-${team.id}`;
+            const TTL = 10 * 60 * 1000; // 10 minutes
+            let rosterData = getCachedData(rosterCacheKey);
+
+            if (!rosterData) {
+                const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`);
+                const data = await response.json();
+                if (data.athletes) {
+                    rosterData = data.athletes;
+                    setCachedData(rosterCacheKey, rosterData, TTL);
+                }
+            }
+
+            if (rosterData) {
+                const newHeadshots = rosterData
                     .flatMap(pg => pg.items || [])
                     .map(p => p.headshot?.href)
                     .filter(Boolean);
@@ -189,11 +210,23 @@ export async function autoDraft(playerNum) {
             while (!draftedPlayer && attempts < maxAttempts) {
                 attempts++;
                 const randomTeam = getRandomElement(teams);
-                const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
-                const data = await response.json();
-                if (!data.athletes) continue;
 
-                let teamPlayers = data.athletes.flatMap(positionGroup => positionGroup.items || []);
+                const rosterCacheKey = `espn-roster-${randomTeam.id}`;
+                const TTL = 10 * 60 * 1000; // 10 minutes
+                let rosterData = getCachedData(rosterCacheKey);
+
+                if (!rosterData) {
+                    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
+                    const data = await response.json();
+                    if (data.athletes) {
+                        rosterData = data.athletes;
+                        setCachedData(rosterCacheKey, rosterData, TTL);
+                    }
+                }
+
+                if (!rosterData) continue;
+
+                let teamPlayers = rosterData.flatMap(positionGroup => positionGroup.items || []);
                 const defPlayer = {
                     id: `DEF-${randomTeam.id}`, displayName: randomTeam.name,
                     position: { name: 'Defense', abbreviation: 'DEF' },
@@ -285,14 +318,26 @@ export async function autoDraftFullRoster(playerNum) {
         const ownRosterIds = new Set(Object.values(playerData[playerNum].rosterSlots).filter(p => p).map(p => p.id));
         const allDraftedIds = new Set([...opponentRosterIds, ...ownRosterIds]);
 
-        const allPlayersPromises = teams.map(team =>
-            fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`)
-            .then(res => res.json())
-            .catch(err => {
-                console.warn(`Failed to fetch roster for ${team.name}`, err);
-                return null;
-            })
-        );
+        const allPlayersPromises = teams.map(team => {
+            const rosterCacheKey = `espn-roster-${team.id}`;
+            const TTL = 10 * 60 * 1000; // 10 minutes
+            const cachedRoster = getCachedData(rosterCacheKey);
+            if (cachedRoster) {
+                return Promise.resolve({ athletes: cachedRoster });
+            }
+            return fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.athletes) {
+                        setCachedData(rosterCacheKey, data.athletes, TTL);
+                    }
+                    return data;
+                })
+                .catch(err => {
+                    console.warn(`Failed to fetch roster for ${team.name}`, err);
+                    return null;
+                });
+        });
 
         const allRosters = await Promise.all(allPlayersPromises);
 
@@ -489,9 +534,45 @@ export async function assignPlayerToSlot(playerNum, playerObj, slotId) {
 
     hideSlotSelectionModal();
 
-// Update visuals immediately (don’t switch turn yet)
-updateLayout(true);
+    // Update visuals immediately (don’t switch turn yet)
+    updateLayout(true);
+    
+    // NEW: Immediately fetch fantasy points for the newly drafted player.
+    // This will update the "Loading..." text in the UI after a short delay.
+    (async () => {
+        let playerNameForTank01 = playerObj.displayName;
+        if (playerObj.position?.abbreviation === 'DEF') {
+            const team = teams.find(t => t.id === playerObj.id.split('-')[1]);
+            playerNameForTank01 = team ? `${team.name} Defense` : playerNameForTank01;
+        }
 
+        const tank01PlayerID = await getTank01PlayerID(playerNameForTank01);
+        if (tank01PlayerID) {
+            const result = await fetchLastGameStats(tank01PlayerID);
+            const playerInRoster = playerData[playerNum].rosterSlots[slotId];
+            if (playerInRoster && result && result.stats) {
+                playerInRoster.statsData = result.stats;
+                const fantasyPointsRaw = result.fantasyPoints;
 
-
+                if (playerInRoster.originalPosition === 'DEF') {
+                    playerInRoster.fantasyPoints = fantasyPointsRaw;
+                } else {
+                    const gameDate = formatGameDate(result.stats.gameID);
+                    const { opponent } = getOpponentAndVenue(result.stats);
+                    const scheduleGame = await fetchLastTeamGame(result.stats.teamAbv, tank01PlayerID);
+                    let teamGame = result.stats;
+                    if (scheduleGame && scheduleGame.gameID && scheduleGame.gameID.localeCompare(result.stats.gameID) > 0) {
+                        teamGame = scheduleGame;
+                    }
+                    const teamGameDate = formatGameDate(teamGame.gameID);
+                    const { opponent: teamOpp } = getOpponentAndVenue(teamGame, result.stats.teamAbv);
+                    playerInRoster.fantasyPoints = (opponent !== teamOpp || gameDate !== teamGameDate) ? 0 : fantasyPointsRaw;
+                }
+            } else if (playerInRoster) {
+                playerInRoster.fantasyPoints = 'N/A';
+            }
+            // After fetching, re-render the specific player's roster and sync if in multiplayer.
+            updateLayout(false); // Re-render without switching turn
+        }
+    })();
 }

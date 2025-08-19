@@ -3,8 +3,10 @@
  * Handles all DOM manipulation and logic specifically for modals (slot selection, player stats, general roster, avatar selection).
  */
 
+import { fetchLastTeamGame } from './api.js';
 import { getOrCreateChild } from './uiRenderer.js'; 
 import { renderAvatarSelectionOptions } from './uiRenderer.js'; // Import the new rendering function
+import { getOpponentAndVenue, formatGameDate } from './utils.js'; // Import helpers from utils
 
 // UI Function: Open the slot selection modal
 export function showSlotSelectionModal(playerObj, playerNum, originalPosition, playerDataForPlayer, assignPlayerToSlotCallback, hideSlotSelectionModalCallback) {
@@ -115,7 +117,9 @@ export async function showPlayerStatsModal(playerObj, allTeams, getTank01PlayerI
 
         const result = await fetchLastGameStatsCallback(playerID);
         if (result && result.stats) {
-            renderPlayerStatsInModalCallback(playerObj.displayName, result.stats);
+            // Add playerID to the stats object for the new render function
+            result.stats.playerID = playerID;
+            renderPlayerStatsInModalCallback(playerObj.displayName, result.stats, allTeams);
         } else {
             statsContainer.innerHTML = `<h2>${playerObj.displayName}</h2><p>No game data available.</p>`;
         }
@@ -133,8 +137,8 @@ export function hidePlayerStatsModal() {
 }
 
 // UI Function: Render player stats in the modal
-export function renderPlayerStatsInModal(playerName, stats) {
-    const statsContainer = document.getElementById('player-stats-details-container');
+export async function renderPlayerStatsInModal(playerName, stats, allTeams) {
+    const statsContainer = document.getElementById("player-stats-details-container");
     statsContainer.innerHTML = '';
 
     if (!stats) {
@@ -142,81 +146,73 @@ export function renderPlayerStatsInModal(playerName, stats) {
         return;
     }
 
-    const fantasyPointsRaw = stats.fantasyPoints 
-                        || stats.fantasyPointsDefault?.PPR
-                        || stats.fantasyPointsDefault?.standard
-                        || 0;
-    const fantasyPoints = Number(fantasyPointsRaw) || 0;
+    const fantasyPointsRaw = Number(
+        stats.fantasyPoints ||
+        stats.fantasyPointsDefault?.PPR ||
+        stats.fantasyPointsDefault?.standard ||
+        0
+    );
 
-    const dateStr = stats.gameID ? stats.gameID.slice(0,8) : 'Unknown Date';
-    const gameDate = `${dateStr.slice(4,6)}/${dateStr.slice(6,8)}/${dateStr.slice(0,4)}`;
-    const opponent = stats.teamAbv || 'Unknown';
+    const gameDate = formatGameDate(stats.gameID);
+    const { opponent, venue } = getOpponentAndVenue(stats);
 
-    const skipKeys = [
-        'recAvg', 'playerID', 'teamID', 'fantasyPointsDefault',
-        'scoringPlays', 'playerIDs', 'avg', 'fantasyPoints', 
-        'gameID', 'teamAbv' 
-    ];
+    // If stats are for a defense, the logic is simpler
+    if (playerName.toLowerCase().includes('defense')) {
+        const teamName = playerName.replace(' Defense', '');
+        const teamData = allTeams.find(t => t.name === teamName);
+        const teamAbv = teamData ? teamData.id : 'N/A';
+        const { opponent: defOpp, venue: defVenue } = getOpponentAndVenue(stats, teamAbv);
 
-    let passComp = 0, passAtt = 0, passYds = 0, passTD = 0, passInt = 0;
-    let rec = 0, targets = 0, recYds = 0;
-    let carries = 0, rushYds = 0;
+        statsContainer.innerHTML = `
+            <h2>${playerName} - Last Game</h2>
+            <p><strong>Date:</strong> ${gameDate}</p>
+            <p><strong>Opponent:</strong> ${defVenue ? defVenue + " " : ""}${defOpp}</p>
+            <p><strong>Fantasy Points:</strong> ${fantasyPointsRaw.toFixed(2)}</p>
+        `;
+        return;
+    }
+    
+    // ✅ Always fetch team schedule to compare dates for individual players
+    const scheduleGame = await fetchLastTeamGame(stats.teamAbv, stats.playerID);
 
-    const lines = [];
-
-    function processStats(obj, prefix = '') {
-        for (const key in obj) {
-            const lowerKey = (prefix + key).toLowerCase();
-
-            if (skipKeys.some(skip => lowerKey.includes(skip.toLowerCase()))) continue;
-
-            if (typeof obj[key] === 'object' && obj[key] !== null) {
-                processStats(obj[key], prefix + key + ' ');
-            } else {
-                const num = Number(obj[key]);
-                if (isNaN(num) || num === 0) continue;
-
-                if (lowerKey.includes('passcompletions')) passComp = num;
-                else if (lowerKey.includes('passattempts')) passAtt = num;
-                else if (lowerKey.includes('passyds')) passYds = num;
-                else if (lowerKey.includes('passtd')) passTD = num;
-                else if (lowerKey.includes('int')) passInt = num;
-                else if (lowerKey.includes('receptions')) rec = num;
-                else if (lowerKey.includes('targets')) targets = num;
-                else if (lowerKey.includes('recy')) recYds = num;
-                else if (lowerKey.includes('carries')) carries = num;
-                else if (lowerKey.includes('rushyds')) rushYds = num;
-                else {
-                    const label = (prefix + key)
-                        .replace(/([a-z])([A-Z])/g, '$1 $2')
-                        .replace(/\b\w/g, l => l.toUpperCase());
-                    lines.push(`<p>${label}: ${num}</p>`);
-                }
-            }
+    let teamGame = stats; // default to player's last game
+    if (scheduleGame && scheduleGame.gameID) {
+        // if schedule game is *newer* than player's game, use it
+        if (scheduleGame.gameID.localeCompare(stats.gameID) > 0) {
+            teamGame = scheduleGame;
         }
     }
 
-    processStats(stats);
+    const teamGameDate = formatGameDate(teamGame.gameID);
+    const { opponent: teamOpp, venue: teamVenue } = getOpponentAndVenue(teamGame, stats.teamAbv);
 
-    if (passComp || passAtt || passYds || passTD || passInt) {
-        let passLine = `Passing: ${passComp}/${passAtt} for ${passYds} yds`;
-        if (passTD) passLine += ` ${passTD} TD`;
-        if (passInt) passLine += ` ${passInt} INT`;
-        lines.unshift(`<p>${passLine}</p>`);
+    // 🔹 Compare: if mismatch → set fantasy points = 0
+    let fantasyPoints = fantasyPointsRaw;
+    if (opponent !== teamOpp || gameDate !== teamGameDate) {
+        fantasyPoints = 0;
     }
-    if (rec || targets || recYds) {
-        lines.unshift(`<p>Receiving: ${rec}/${targets} for ${recYds} yds</p>`);
+
+    let lines = [];
+    if (stats.passCompletions || stats.passAttempts || stats.passYds) {
+        lines.push(`Passing: ${stats.passCompletions||0}/${stats.passAttempts||0} for ${stats.passYds||0} yds, ${stats.passTD || 0} TD, ${stats.int || 0} INT`);
     }
-    if (carries || rushYds) {
-        lines.unshift(`<p>Rushing: ${carries} carries for ${rushYds} yds</p>`);
+    if (stats.receptions || stats.targets || stats.recYds) {
+        lines.push(`Receiving: ${stats.receptions||0}/${stats.targets||0} for ${stats.recYds||0} yds`);
+    }
+    if (stats.carries || stats.rushYds) {
+        lines.push(`Rushing: ${stats.carries||0} carries for ${stats.rushYds||0} yds`);
     }
 
     statsContainer.innerHTML = `
-        <h2>${playerName} - Last Game Stats</h2>
+        <h2>${playerName} - Last Game</h2>
         <p><strong>Date:</strong> ${gameDate}</p>
-        <p><strong>Opponent:</strong> ${opponent}</p>
-        ${lines.length ? lines.map(line => `<p>${line}</p>`).join('') : '<p>No detailed stats available.</p>'}
+        <p><strong>Opponent:</strong> ${venue ? venue + " " : ""}${opponent}</p>
+        ${lines.map(l => `<p>${l}</p>`).join("")}
         <p><strong>Fantasy Points:</strong> ${fantasyPoints.toFixed(2)}</p>
+        <hr style="border-color: rgba(138, 155, 191, 0.2); margin: 1rem 0;">
+        <h3 style="font-size: 1.2rem; color: #8A9BBF; margin-bottom: 0.5rem;">Team (${stats.teamAbv}) - Last Game</h3>
+        <p><strong>Date:</strong> ${teamGameDate}</p>
+        <p><strong>Opponent:</strong> ${teamVenue ? teamVenue + " " : ""}${teamOpp}</p>
     `;
 }
 

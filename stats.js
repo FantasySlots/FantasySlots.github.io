@@ -1,6 +1,7 @@
 import { teams } from './data.js';
 import { getTank01PlayerID, fetchLastGameStats } from './api.js';
 import { showPlayerStatsModal, hidePlayerStatsModal, renderPlayerStatsInModal } from './uiModals.js';
+import { getCachedData, setCachedData } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const teamListContainer = document.getElementById('team-list');
@@ -53,12 +54,21 @@ async function fetchAndDisplayRoster(team) {
     rosterContainer.innerHTML = `<div class="loading-message"><p>Loading ${team.name} roster...</p></div>`;
 
     try {
-        const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch roster: ${response.statusText}`);
+        const rosterCacheKey = `espn-roster-${team.id}`;
+        const TTL = 10 * 60 * 1000; // 10 minutes
+        let rosterData = getCachedData(rosterCacheKey);
+
+        if (!rosterData) {
+            const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch roster: ${response.statusText}`);
+            }
+            const data = await response.json();
+            rosterData = data.athletes;
+            setCachedData(rosterCacheKey, rosterData, TTL);
         }
-        const data = await response.json();
-        renderRoster(team, data.athletes);
+        
+        renderRoster(team, rosterData);
     } catch (error) {
         console.error('Error fetching roster:', error);
         rosterContainer.innerHTML = `<div class="error-message"><p>Could not load roster for ${team.name}. Please try again later.</p></div>`;

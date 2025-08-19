@@ -11,10 +11,12 @@ import { confirmName, selectAvatar, updateAvatarPreview, AVATAR_SVGS, resetPlaye
 import { selectTeam, autoDraft, draftPlayer, autoDraftFullRoster } from './gameFlow.js';
 
 // Import API functions
-import { getTank01PlayerID, fetchLastGameStats } from './api.js';
+import { getTank01PlayerID, fetchLastGameStats, fetchLastTeamGame } from './api.js';
 
 // Import static data
 import { teams } from './data.js'; 
+// Import utility functions
+import { getOpponentAndVenue, formatGameDate } from './utils.js';
 
 // NEW: Import Firebase
 import { db } from './firebase.js';
@@ -27,6 +29,7 @@ let localPlayerNum = null;
 let gameRef = null;
 let playerRef = null;
 let isSyncing = false; // Flag to prevent feedback loops
+let fantasyPointInterval = null; // NEW: To hold the setInterval for point updates
 
 /**
  * NEW: Sync local state with Firebase.
@@ -74,38 +77,77 @@ function openPlayerStatsModalCaller(playerObj) {
 }
 
 /**
+ * NEW: Fetches and updates fantasy points for a single player's roster.
+ * This is designed to be called repeatedly for live updates.
+ * @param {number} playerNum - The player number (1 or 2).
+ * @returns {Promise<boolean>} A promise that resolves to true if any points were updated.
+ */
+async function updateFantasyPointsForPlayer(playerNum) {
+    const playerRoster = playerData[playerNum].rosterSlots;
+    if (!playerRoster) return false;
+
+    let pointsUpdated = false;
+    const rosterSlotsOrder = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'Flex', 'DEF', 'K'];
+
+    for (const slotId of rosterSlotsOrder) {
+        const playerInSlot = playerRoster[slotId];
+        if (playerInSlot) { // Fetch for any drafted player
+            let playerNameForTank01 = playerInSlot.displayName;
+            if (playerInSlot.originalPosition === 'DEF') {
+                const team = teams.find(t => t.id === playerInSlot.id.split('-')[1]);
+                playerNameForTank01 = team ? `${team.name} Defense` : playerNameForTank01;
+            }
+
+            const tank01PlayerID = await getTank01PlayerID(playerNameForTank01);
+            let newFantasyPoints = 'N/A';
+            let newStatsData = null;
+
+            if (tank01PlayerID) {
+                const result = await fetchLastGameStats(tank01PlayerID);
+                if (result && result.stats) {
+                    newStatsData = result.stats;
+                    const fantasyPointsRaw = result.fantasyPoints;
+
+                    if (playerInSlot.originalPosition === 'DEF') {
+                        newFantasyPoints = fantasyPointsRaw;
+                    } else {
+                        const gameDate = formatGameDate(result.stats.gameID);
+                        const { opponent } = getOpponentAndVenue(result.stats);
+                        const scheduleGame = await fetchLastTeamGame(result.stats.teamAbv, tank01PlayerID);
+                        let teamGame = result.stats;
+                        if (scheduleGame && scheduleGame.gameID && scheduleGame.gameID.localeCompare(result.stats.gameID) > 0) {
+                            teamGame = scheduleGame;
+                        }
+                        const teamGameDate = formatGameDate(teamGame.gameID);
+                        const { opponent: teamOpp } = getOpponentAndVenue(teamGame, result.stats.teamAbv);
+                        newFantasyPoints = (opponent !== teamOpp || gameDate !== teamGameDate) ? 0 : fantasyPointsRaw;
+                    }
+                }
+            }
+            // Check if the points have actually changed before marking as updated
+            if (playerInSlot.fantasyPoints !== newFantasyPoints) {
+                playerInSlot.fantasyPoints = newFantasyPoints;
+                playerInSlot.statsData = newStatsData;
+                pointsUpdated = true;
+            }
+        }
+    }
+    return pointsUpdated;
+}
+
+
+/**
  * Fetches and displays fantasy points for all players in a roster.
  * This is called when both rosters are full or on initial load for full rosters.
  * @param {number} playerNum - The player number (1 or 2).
  */
 async function fetchAndDisplayPlayerFantasyPoints(playerNum) {
-    const playerRoster = playerData[playerNum].rosterSlots;
-    const rosterSlotsOrder = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'Flex', 'DEF', 'K'];
-
-    for (const slotId of rosterSlotsOrder) {
-        const playerInSlot = playerRoster[slotId];
-        if (playerInSlot && playerInSlot.fantasyPoints === null) {
-            let playerNameForTank01 = playerInSlot.displayName;
-            if (playerInSlot.originalPosition === 'DEF') {
-                const team = teams.find(t => t.id === playerInSlot.id.split('-')[1]);
-                if (team) {
-                    playerNameForTank01 = `${team.name} Defense`;
-                }
-            }
-
-            const tank01PlayerID = await getTank01PlayerID(playerNameForTank01);
-            if (tank01PlayerID) {
-                const result = await fetchLastGameStats(tank01PlayerID);
-                playerInSlot.fantasyPoints = result ? result.fantasyPoints : 'N/A';
-                playerInSlot.statsData = result ? result.stats : null;
-            } else {
-                playerInSlot.fantasyPoints = 'N/A';
-                playerInSlot.statsData = null;
-            }
-            localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
-            // Re-render the fantasy roster after each player's points are fetched
-            displayFantasyRoster(playerNum, playerData[playerNum], teams, isFantasyRosterFull(playerNum), openPlayerStatsModalCaller); 
-        }
+    // This function is now a wrapper around the new update function.
+    const updated = await updateFantasyPointsForPlayer(playerNum);
+    if (updated) {
+        // If points were updated, save to local storage (for local games) and re-render.
+        localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+        displayFantasyRoster(playerNum, playerData[playerNum], teams, isFantasyRosterFull(playerNum), openPlayerStatsModalCaller);
     }
 }
 
@@ -395,6 +437,27 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
             // preventing race conditions, then force a final sync.
             setTimeout(syncWithFirebase, 300);
         }
+    }
+
+    // NEW: Start fetching fantasy points periodically when the game is complete (or rosters are full)
+    if (gameState.phase === 'COMPLETE' && !fantasyPointInterval && gameMode === 'multiplayer') {
+        console.log("STARTING FANTASY POINT POLLING");
+        fantasyPointInterval = setInterval(async () => {
+            console.log("Polling for fantasy points...");
+            // Only the "host" (player 1) should be responsible for fetching to avoid duplicate API calls.
+            if (localPlayerNum === 1) {
+                const p1Updated = await updateFantasyPointsForPlayer(1);
+                const p2Updated = await updateFantasyPointsForPlayer(2);
+                if (p1Updated || p2Updated) {
+                    console.log("Points changed, syncing...");
+                    await syncWithFirebase();
+                }
+            }
+        }, 30000); // Poll every 30 seconds
+    } else if (gameState.phase !== 'COMPLETE' && fantasyPointInterval) {
+        // Clear interval if game resets
+        clearInterval(fantasyPointInterval);
+        fantasyPointInterval = null;
     }
 
     const playersContainer = document.querySelector('.players-container');

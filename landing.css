@@ -1,0 +1,110 @@
+/* 
+==============================================
+            LANDING PAGE STYLES
+==============================================
+*/
+.landing-page-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+}
+
+.landing-page-container {
+    max-width: 800px;
+    padding: 2.5rem 2rem;
+    background: #101935;
+    border: 1px solid rgba(138, 155, 191, 0.2);
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    animation: fadeIn 0.8s ease-out;
+}
+
+.landing-page-main {
+    margin-top: 3rem;
+}
+
+.landing-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- BUTTONS --- */
+.landing-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 350px;
+    padding: 1.5rem 2.5rem;
+    border: none;
+    border-radius: 1rem;
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.landing-button.play-slots-btn {
+    background: #3b82f6;
+    border: 1px solid #3b82f6;
+}
+.landing-button.play-slots-btn:hover {
+    background: #2563eb;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.35);
+}
+
+.landing-button.view-stats-btn,
+.landing-button.play-locally-btn {
+    background: transparent;
+    border: 1px solid #8A9BBF;
+    color: #E0E6EF;
+}
+.landing-button.view-stats-btn:hover,
+.landing-button.play-locally-btn:hover {
+    background: #8A9BBF;
+    color: #0A1128;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(138, 155, 191, 0.35);
+}
+
+.landing-button.play-friends-btn {
+    background: #3b82f6;
+    border: 1px solid #3b82f6;
+}
+.landing-button.play-friends-btn:hover {
+    background: #2563eb;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.35);
+}
+
+.landing-button:hover .btn-shimmer {
+    left: 100%;
+}
+
+.back-button {
+    background: none;
+    border: 1px solid #8A9BBF;
+    color: #8A9BBF;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+.back-button:hover {
+    background: rgba(138, 155, 191, 0.2);
+    color: #E0E6EF;
+}

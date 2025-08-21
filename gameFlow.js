@@ -2,7 +2,7 @@
  * gameFlow.js
  * Contains the core game logic for team selection, drafting, and player state resets.
  */
-import { gameState, playerData, isFantasyRosterFull, resetGameState, switchTurn } from './playerState.js';
+import { gameState, playerData, isFantasyRosterFull, switchTurn } from './playerState.js';
 import { shuffleArray, getRandomElement, delay, getCachedData, setCachedData } from './utils.js';
 import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
 import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';

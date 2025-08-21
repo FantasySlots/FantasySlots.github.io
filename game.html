@@ -5,26 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0A1128">
     <title>Fantasy Slots</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="game.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <header class="header">
-            <a href="index.html">
-                <img src="https://i.postimg.cc/HLVXjSLh/output-onlinepngtools.png" alt="NFL Fantasy Slots Logo" class="site-logo">
+    <header class="game-header">
+        <div class="header-content">
+            <a href="index.html" class="logo-link">
+                <img src="https://i.postimg.cc/HLVXjSLh/output-onlinepngtools.png" alt="NFL Fantasy Slots Logo" class="site-logo-small">
             </a>
-            <p class="subtitle">A randomly generated 1v1 fantasy experience.</p>
-            <!-- NEW: Multiplayer Status Box -->
             <div id="multiplayer-status-box" style="display: none;">
                 <p id="multiplayer-status-text"></p>
+              </div>
                 <div id="share-link-container" style="display: none;">
-                    <input type="text" id="share-link-input" readonly>
-                    <button id="copy-link-btn">Copy</button>
+                 <p class="share-link-text">Share With Friends </p>
+                    <input type="text" id="share-link-input" readonly placeholder="Share this link with a friend!">
+                    <button id="copy-link-btn">
+                        <span>Copy</span>
+                    </button>
                 </div>
-            </div>
-        </header>
+            
+            <div class="header-spacer"></div>
+        </div>
+    </header>
 
+    <div class="app-container">
         <!-- New: Add Player 2 Button - Moved to the top -->
         <button class="add-player2-btn" id="add-player2-btn" style="display: none;">Add Player 2</button>
 
@@ -32,8 +38,10 @@
             <!-- Player 1 Section -->
             <div class="player-section" id="player1-section">
                 <div class="player-header">
+                    <div class="drafting-overlay">
+                        <span class="overlay-text"></span>
+                    </div>
                     <h2 class="player-title">Player 1</h2>
-                    <button class="reset-btn" id="player1-reset-btn"><img src="https://www.svgrepo.com/download/451239/reset.svg" alt="Reset Icon"></button>
                 </div>
                 <div class="name-input-container">
                     <input type="text" 
@@ -41,13 +49,11 @@
                            class="name-input" 
                            placeholder="Enter your name..."
                            maxlength="20">
-                    <!-- New: Avatar Selection Trigger for Player 1 -->
                     <div class="avatar-selection-area" id="player1-avatar-area">
                         <div class="selected-avatar-preview" id="player1-avatar-preview">
                             <img src="" alt="Selected Avatar" class="player-avatar-img" style="display:none;">
-                            <span class="avatar-placeholder">Choose Avatar</span>
+                            <span class="avatar-placeholder">+</span>
                         </div>
-                        <!-- Avatar options will now be in a modal -->
                     </div>
                     <button class="confirm-name-btn" id="player1-name-confirm-btn">Confirm</button>
                 </div>
@@ -55,26 +61,26 @@
                 <div class="player-ready-message" id="player1-ready-message" style="display: none;"></div>
                 
                 <div class="team-display" id="player1-display" style="display: none;">
-                    <div class="team-info">
-                        <img class="team-logo" id="player1-logo" src="" alt="">
-                        <h3 class="team-name" id="player1-team-name"></h3>
+                    <div class="team-display-header">
+                        <div class="inactive-overlay">
+                            <span class="overlay-text"></span>
+                        </div>
+                        <div class="team-info">
+                            <img class="team-logo" id="player1-logo" src="" alt="">
+                            <h3 class="team-name" id="player1-team-name"></h3>
+                        </div>
+                        <div class="team-selection" id="player1-team">
+                            <button class="select-team-btn" id="player1-select-team-btn">
+                                <span>Spin Team</span>
+                            </button>
+                            <button class="auto-draft-btn" id="player1-auto-draft-btn">
+                                <span>Spin Player</span>
+                            </button>
+                            <button class="auto-draft-full-btn" id="player1-auto-draft-full-btn">
+                                <span>Auto-Draft Roster</span>
+                            </button>
+                        </div>
                     </div>
-                    <!-- Team Selection Buttons - moved here -->
-                    <div class="team-selection" id="player1-team">
-                        <button class="select-team-btn" id="player1-select-team-btn">
-                            <span> Spin a Random Team</span>
-                            <div class="btn-shimmer"></div>
-                        </button>
-                        <button class="auto-draft-btn" id="player1-auto-draft-btn">
-                            <span>Spin a Random Player</span>
-                            <div class="btn-shimmer"></div>
-                        </button>
-                        <button class="auto-draft-full-btn" id="player1-auto-draft-full-btn">
-                            <span>Auto Draft Full Roster</span>
-                            <div class="btn-shimmer"></div>
-                        </button>
-                    </div>
-                    <!-- New container for content switching -->
                     <div class="player-content-area" id="player1-content-area">
                         <!-- inline-roster (NFL players) and fantasy-roster will be inserted here by JS -->
                     </div>
@@ -92,8 +98,10 @@
             <!-- Player 2 Section -->
             <div class="player-section" id="player2-section">
                 <div class="player-header">
+                    <div class="drafting-overlay">
+                        <span class="overlay-text"></span>
+                    </div>
                     <h2 class="player-title">Player 2</h2>
-                    <button class="reset-btn" id="player2-reset-btn"><img src="https://www.svgrepo.com/download/451239/reset.svg" alt="Reset Icon"></button>
                 </div>
                 <div class="name-input-container">
                     <input type="text" 
@@ -101,13 +109,11 @@
                            class="name-input" 
                            placeholder="Enter your name..."
                            maxlength="20">
-                    <!-- New: Avatar Selection Trigger for Player 2 -->
                     <div class="avatar-selection-area" id="player2-avatar-area">
                         <div class="selected-avatar-preview" id="player2-avatar-preview">
                             <img src="" alt="Selected Avatar" class="player-avatar-img" style="display:none;">
-                            <span class="avatar-placeholder">Choose Avatar</span>
+                            <span class="avatar-placeholder">+</span>
                         </div>
-                        <!-- Avatar options will now be in a modal -->
                     </div>
                     <button class="confirm-name-btn" id="player2-name-confirm-btn">Confirm</button>
                 </div>
@@ -115,26 +121,26 @@
                 <div class="player-ready-message" id="player2-ready-message" style="display: none;"></div>
 
                 <div class="team-display" id="player2-display" style="display: none;">
-                    <div class="team-info">
-                        <img class="team-logo" id="player2-logo" src="" alt="">
-                        <h3 class="team-name" id="player2-team-name"></h3>
+                     <div class="team-display-header">
+                        <div class="inactive-overlay">
+                            <span class="overlay-text"></span>
+                        </div>
+                        <div class="team-info">
+                            <img class="team-logo" id="player2-logo" src="" alt="">
+                            <h3 class="team-name" id="player2-team-name"></h3>
+                        </div>
+                        <div class="team-selection" id="player2-team">
+                            <button class="select-team-btn" id="player2-select-team-btn">
+                                <span>Spin Team</span>
+                            </button>
+                            <button class="auto-draft-btn" id="player2-auto-draft-btn">
+                                <span>Spin Player</span>
+                            </button>
+                            <button class="auto-draft-full-btn" id="player2-auto-draft-full-btn">
+                                <span>Auto-Draft Roster</span>
+                            </button>
+                        </div>
                     </div>
-                    <!-- Team Selection Buttons - moved here -->
-                    <div class="team-selection" id="player2-team">
-                        <button class="select-team-btn" id="player2-select-team-btn">
-                            <span> Spin a Random Team</span>
-                            <div class="btn-shimmer"></div>
-                        </button>
-                        <button class="auto-draft-btn" id="player2-auto-draft-btn">
-                            <span>Spin a Random Player</span>
-                            <div class="btn-shimmer"></div>
-                        </button>
-                        <button class="auto-draft-full-btn" id="player2-auto-draft-full-btn">
-                            <span>Auto Draft Full Roster</span>
-                            <div class="btn-shimmer"></div>
-                        </button>
-                    </div>
-                    <!-- New container for content switching -->
                     <div class="player-content-area" id="player2-content-area">
                         <!-- inline-roster (NFL players) and fantasy-roster will be inserted here by JS -->
                     </div>

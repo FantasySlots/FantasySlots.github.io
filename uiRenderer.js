@@ -92,32 +92,26 @@ export function updatePlayerContentDisplay(playerNum, playerDataForPlayer, isFan
     const hasTeamSelected = playerDataForPlayer.team !== null;
     const hasAnyDraftedPlayer = Object.values(playerDataForPlayer.rosterSlots).some(slot => slot !== null);
     
-    const playersContainer = document.querySelector('.players-container');
-
+    // REMOVED: The logic for managing 'drafting-view' classes is now handled in game.js's updateLayout function.
+    
     if (hasTeamSelected && !hasDraftedFromCurrentTeam) {
         // Show inline roster (draft interface) if a team is selected and no player drafted from it yet.
         inlineRosterEl.style.display = 'block';
         fantasyRosterEl.style.display = 'none';
-        // Add class to expand the view
-        playersContainer.classList.add('drafting-view', `p${playerNum}-drafting`);
     } else if (hasAnyDraftedPlayer) {
         // If any player has been drafted (either manually or via auto-draft), show the fantasy roster.
         inlineRosterEl.style.display = 'none';
         fantasyRosterEl.style.display = 'block';
-        // Remove class to restore normal view
-        playersContainer.classList.remove('drafting-view', 'p1-drafting', 'p2-drafting');
     } else {
         // If no team is selected yet, and no players drafted, hide both roster views.
         // The "Roll Team" buttons will be visible in this state.
         inlineRosterEl.style.display = 'none';
         fantasyRosterEl.style.display = 'none';
-         // Remove class to restore normal view
-        playersContainer.classList.remove('drafting-view', 'p1-drafting', 'p2-drafting');
     }
 }
 
 // UI Function: Display draft interface (NFL Roster of a chosen team)
-export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlayer, opponentData, isFantasyRosterFullFn, isPlayerPositionUndraftableFn, draftPlayerCallback) {
+export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlayer, opponentData, isFantasyRosterFullFn, isPlayerPositionUndraftableFn, draftPlayerCallback, openPlayerStatsModalCallback) {
     const playerContentArea = document.getElementById(`player${playerNum}-content-area`);
     const draftContainer = getOrCreateChild(playerContentArea, 'inline-roster');
     draftContainer.innerHTML = ''; // Clear previous content before rendering new
@@ -211,9 +205,22 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
                     // No event listener for drafted cards
                 } else {
                     playerDiv.classList.add('player-draft-card--available');
+                    playerDiv.style.cursor = 'pointer';
+                    
+                    // Add click listener to the whole card to view stats
+                    playerDiv.addEventListener('click', () => {
+                        // The API returns a player object that is slightly different from our roster object.
+                        // We'll create a compatible object to pass to the stats modal function.
+                        const playerForStats = {
+                            ...player,
+                            originalPosition: player.position?.abbreviation || player.position?.name
+                        };
+                        openPlayerStatsModalCallback(playerForStats);
+                    });
+
                     // Attach event listener only to the "Draft" text element
                     draftActionText.addEventListener('click', (event) => {
-                        event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
+                        event.stopPropagation(); // Prevent the card's stats click handler from firing
                         draftPlayerCallback(playerNum, player, position);
                     });
                     draftActionText.textContent = 'Draft';
@@ -278,9 +285,20 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
         // No event listener for drafted cards
     } else {
         defOption.classList.add('player-draft-card--available');
+        defOption.style.cursor = 'pointer';
+        
+        // Add click listener to the whole card to view stats
+        defOption.addEventListener('click', () => {
+             const playerForStats = {
+                ...defPlayer,
+                originalPosition: 'DEF'
+            };
+            openPlayerStatsModalCallback(playerForStats);
+        });
+
         // Attach event listener only to the "Draft" text element
         draftActionTextDef.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent the card's (non-existent) click handler from firing
+            event.stopPropagation(); // Prevent the card's stats click handler from firing
             draftPlayerCallback(playerNum, defPlayer, 'DEF');
         });
         draftActionTextDef.textContent = 'Draft';
@@ -291,7 +309,7 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
 }
 
 // UI Function: Display fantasy roster
-export function displayFantasyRoster(playerNum, playerDataForPlayer, allTeams, isPlayerRosterFull, openPlayerStatsModalCallback) {
+export function displayFantasyRoster(playerNum, playerDataForPlayer, allTeams, openPlayerStatsModalCallback) {
     const playerContentArea = document.getElementById(`player${playerNum}-content-area`);
     const fantasyRoster = getOrCreateChild(playerContentArea, 'fantasy-roster');
     fantasyRoster.innerHTML = '';
@@ -305,6 +323,10 @@ export function displayFantasyRoster(playerNum, playerDataForPlayer, allTeams, i
     
     fantasyRoster.appendChild(title);
     
+    const slotsContainer = document.createElement('div');
+    slotsContainer.className = 'fantasy-roster-slots-container';
+    fantasyRoster.appendChild(slotsContainer);
+
     const rosterSlotsOrder = ['QB', 'RB', 'WR1', 'WR2', 'TE', 'Flex', 'DEF', 'K'];
     const playerRosterSlots = playerDataForPlayer.rosterSlots;
     
@@ -362,13 +384,13 @@ export function displayFantasyRoster(playerNum, playerDataForPlayer, allTeams, i
         rightContent.appendChild(pointsSpan);
         div.appendChild(rightContent);
 
-        if (playerInSlot && isPlayerRosterFull) {
+        if (playerInSlot) {
             div.style.cursor = 'pointer';
             div.classList.add('player-card--clickable-stats'); 
             div.addEventListener('click', () => openPlayerStatsModalCallback(playerInSlot));
         }
 
-        fantasyRoster.appendChild(div);
+        slotsContainer.appendChild(div);
     });
 
     const totalPointsDiv = document.createElement('div');

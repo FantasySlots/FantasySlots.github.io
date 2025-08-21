@@ -93,19 +93,16 @@ export function resetPlayer(playerNum) {
     
     localStorage.removeItem(`fantasyTeam_${playerNum}`);
     
-    const otherPlayerNum = playerNum === 1 ? 2 : 1;
-
     // If both players are reset, also reset the shared game state
     if (!playerData[1].name && !playerData[2].name) {
         resetGameState();
-    } else if (playerData[otherPlayerNum].name) {
-        // If the other player is still in the game, make it their turn.
-        // This ensures focus shifts correctly when one player resets.
-        gameState.currentPlayer = otherPlayerNum;
     }
     
     // Clear input values
-    document.getElementById(`player${playerNum}-name`).value = '';
+    const nameInput = document.getElementById(`player${playerNum}-name`);
+    if (nameInput) {
+        nameInput.value = '';
+    }
     
     // Reset player title to default "Player X" and remove avatar
     updateLayout();

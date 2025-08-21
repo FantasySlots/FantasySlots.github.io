@@ -1,0 +1,203 @@
+/* 
+==============================================
+            STATS PAGE STYLES
+==============================================
+*/
+.stats-page-body {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.stats-main-content {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+}
+
+.team-list-container {
+    flex: 0 0 300px; /* Don't grow, don't shrink, base width 300px */
+    max-height: 75vh;
+    overflow-y: auto;
+    background: rgba(10, 17, 40, 0.95);
+    border: 1px solid rgba(138, 155, 191, 0.2);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+/* Custom scrollbar for team list */
+.team-list-container::-webkit-scrollbar {
+    width: 8px;
+}
+.team-list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.team-list-container::-webkit-scrollbar-thumb {
+    background-color: rgba(138, 155, 191, 0.3);
+    border-radius: 4px;
+}
+
+.team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.team-list-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.team-list-item:hover {
+    background-color: rgba(138, 155, 191, 0.1);
+    transform: translateX(3px);
+}
+
+.team-list-item.selected {
+    background-color: rgba(174, 32, 18, 0.2);
+    border-color: rgba(174, 32, 18, 0.5);
+    font-weight: 600;
+}
+
+.team-list-item img {
+    width: 40px;
+    height: 40px;
+}
+
+.roster-display-container {
+    flex: 1;
+    min-height: 75vh;
+    background: rgba(10, 17, 40, 0.95);
+    border: 1px solid rgba(138, 155, 191, 0.2);
+    border-radius: 1rem;
+    padding: 2rem;
+}
+
+.roster-display-container .initial-message,
+.roster-display-container .loading-message,
+.roster-display-container .error-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 50vh;
+    font-size: 1.5rem;
+    color: #8A9BBF;
+    text-align: center;
+}
+.roster-display-container .error-message {
+    color: #ef4444;
+}
+
+.roster-team-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(138, 155, 191, 0.2);
+}
+.roster-team-header img {
+    width: 80px;
+    height: 80px;
+}
+.roster-team-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+/* Base styles copied from game.css for card consistency */
+.player-draft-card {
+    padding: 1.25rem;
+    background: rgba(26, 35, 49, 0.3);
+    border-radius: 1rem;
+    border: 1px solid transparent;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: flex; /* Make card a flex container */
+    flex-direction: column; /* Stack children vertically */
+    justify-content: space-between; /* Space out header and meta */
+}
+
+.player-photo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #1f2937;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.player-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    min-height: 60px; /* Match photo height for alignment */
+}
+
+.player-name-text {
+    font-weight: 600;
+    font-size: 1.1rem; /* Reduced font size */
+    color: #E0E6EF;
+    line-height: 1.3;
+    word-break: break-word; /* Allow long names to wrap cleanly */
+}
+
+.player-meta-text {
+    color: #8A9BBF;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stats-player-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.stats-player-card:hover {
+    transform: translateY(-3px);
+    background: rgba(26, 35, 49, 0.6) !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* 
+==============================================
+            RESPONSIVENESS
+==============================================
+*/
+@media (max-width: 900px) {
+    .stats-main-content {
+        flex-direction: column;
+    }
+    .team-list-container {
+        flex-basis: auto;
+        width: 100%;
+        max-height: 250px; /* Make it scrollable horizontally */
+    }
+    .team-list {
+        flex-direction: row; /* Horizontal scrolling for teams on mobile */
+        overflow-x: auto;
+        padding-bottom: 1rem; /* Space for scrollbar */
+    }
+    .team-list-item {
+        flex-direction: column;
+        min-width: 100px;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    .roster-team-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    .roster-team-header h2 {
+        font-size: 2rem;
+    }
+}

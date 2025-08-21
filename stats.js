@@ -116,7 +116,7 @@ function renderRoster(team, teamAthletes) {
             positionDiv.style.marginBottom = '1.5rem';
             
             const title = document.createElement('h4');
-            title.textContent = positionGroups[position][0].position?.displayName || position;
+            title.textContent = position;
             title.style.color = '#3b82f6';
             title.style.fontSize = '1.125rem';
             title.style.fontWeight = '600';
@@ -141,7 +141,7 @@ function renderRoster(team, teamAthletes) {
                         <div class="player-name-text">${player.displayName}</div>
                     </div>
                     <div class="player-meta-text">
-                        <span>${player.position?.name || 'N/A'}</span>
+                        <span>${player.position?.abbreviation || 'N/A'}</span>
                         <span class="draft-action-text" style="color:#AE2012; background: none;">View Stats</span>
                     </div>
                 `;

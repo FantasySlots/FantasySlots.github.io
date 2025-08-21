@@ -145,12 +145,51 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
         }
     });
     
+    // NEW: Create and add position filter bar
+    const filterContainer = document.createElement('div');
+    filterContainer.className = 'position-filter-bar';
+    draftContainer.appendChild(filterContainer);
+
+    const positionOrder = ['QB', 'RB', 'WR', 'TE', 'K'];
+
+    // Create filter buttons for available positions
+    positionOrder.forEach(position => {
+        if (positionGroups[position] && positionGroups[position].length > 0) {
+            const filterButton = document.createElement('button');
+            filterButton.className = 'position-filter-btn';
+            filterButton.textContent = position;
+            filterButton.dataset.position = position;
+            filterContainer.appendChild(filterButton);
+        }
+    });
+
+    // Add DEF filter button separately
+    const defFilterButton = document.createElement('button');
+    defFilterButton.className = 'position-filter-btn';
+    defFilterButton.textContent = 'DEF';
+    defFilterButton.dataset.position = 'DEF';
+    filterContainer.appendChild(defFilterButton);
+
+    // Add event listener to the filter bar for scrolling
+    filterContainer.addEventListener('click', (event) => {
+        if (event.target.tagName === 'BUTTON') {
+            const position = event.target.dataset.position;
+            const targetElement = draftContainer.querySelector(`#position-group-${playerNum}-${position}`);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                // Highlight active filter
+                filterContainer.querySelectorAll('.position-filter-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+            }
+        }
+    });
+    
     // NEW: Create a set of opponent's drafted player IDs for quick lookup.
     const opponentDraftedIds = new Set(Object.values(opponentData.rosterSlots).filter(p => p).map(p => p.id));
     const canDraftFromCurrentTeam = playerDataForPlayer.draftedPlayers.length === 0;
     const rosterIsFull = isFantasyRosterFullFn(playerNum);
 
-    const positionOrder = ['QB', 'RB', 'WR', 'TE', 'K'];
     positionOrder.forEach(position => {
         if (positionGroups[position] && positionGroups[position].length > 0) {
             const positionDiv = document.createElement('div');
@@ -158,10 +197,8 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
             
             const title = document.createElement('h4');
             title.textContent = `${position}s`;
-            title.style.color = '#3b82f6';
-            title.style.fontSize = '1.125rem';
-            title.style.fontWeight = '600';
-            title.style.marginBottom = '0.75rem';
+            title.className = 'position-group-title'; // Use class for styling
+            title.id = `position-group-${playerNum}-${position}`; // Add unique ID for scrolling
             
             positionDiv.appendChild(title);
             
@@ -182,7 +219,7 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
                         <div class="player-name-text">${player.displayName}</div>
                     </div>
                     <div class="player-meta-text">
-                        <span>${player.position?.name || ''}</span>
+                        <span>${player.position?.abbreviation || 'N/A'}</span>
                         <span class="draft-action-text">Draft</span>
                     </div>
                 `;
@@ -239,10 +276,8 @@ export function displayDraftInterface(playerNum, teamAthletes, playerDataForPlay
     
     const defTitle = document.createElement('h4');
     defTitle.textContent = 'DEF';
-    defTitle.style.color = '#3b82f6';
-    defTitle.style.fontSize = '1.125rem';
-    defTitle.style.fontWeight = '600';
-    defTitle.style.marginBottom = '0.75rem';
+    defTitle.className = 'position-group-title'; // Use class for styling
+    defTitle.id = `position-group-${playerNum}-DEF`; // Add unique ID for scrolling
     
     defDiv.appendChild(defTitle);
     

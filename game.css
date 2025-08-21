@@ -433,6 +433,45 @@
     position: relative; /* Add position relative for overlay context */
 }
 
+/* NEW: Position filter bar for draft interface */
+.position-filter-bar {
+    position: sticky;
+    top: 100px; /* height of the desktop header */
+    background: #101935; /* Same as player section background */
+    padding: 0.75rem 0;
+    z-index: 5;
+    display: flex;
+    justify-content: flex-start; /* Changed from center */
+    gap: 0.5rem;
+    overflow-x: auto;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+    border-bottom: 1px solid rgba(138, 155, 191, 0.15);
+    margin-bottom: 1rem;
+}
+
+.position-filter-bar::-webkit-scrollbar {
+    display: none; /* for Chrome, Safari, and Opera */
+}
+
+.position-filter-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(138, 155, 191, 0.1);
+    border: 1px solid rgba(138, 155, 191, 0.2);
+    color: #E0E6EF;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.position-filter-btn:hover {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
 /* NEW container for elements that get overlaid */
 .team-display-header {
     position: relative;
@@ -554,13 +593,14 @@
 .inline-roster {
     display: none;
 }
-.inline-roster h4 {
+.inline-roster .position-group-title {
     margin-bottom: 0.75rem;
-    font-size: 1rem;
-    font-weight: 500;
-    color: #8A9BBF;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #3b82f6;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    scroll-margin-top: 180px; /* Offset for sticky header and filter bar */
 }
 .inline-roster > div > div {
     display: grid;
@@ -642,9 +682,9 @@
 }
 .fantasy-roster > h3 { display: none; } /* Hide "Fantasy Roster" title */
 
-.player-section.active-turn .fantasy-roster-slot {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+.fantasy-roster-slots-container {
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
 }
 

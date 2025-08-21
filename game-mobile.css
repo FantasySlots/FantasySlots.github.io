@@ -110,19 +110,44 @@
     }
     
     .players-container {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-        padding: 1rem;
+        display: flex;
+        flex-direction: column; /* Default to stacked for name entry */
+        transition: transform 0.3s ease-in-out; /* A slightly faster, smoother transition */
+        gap: 0; /* Removed gap for side-by-side view */
+        padding: 0;
+        width: 100%;
     }
-    
+
+    .players-container.drafting-phase {
+        flex-direction: row; /* Switch to side-by-side for drafting */
+        width: 200%; /* Make container twice the screen width */
+    }
+
+    /* NEW: Add classes to control which player view is active */
+    .players-container.view-p1 {
+        transform: translateX(0%);
+    }
+
+    .players-container.view-p2 {
+        transform: translateX(-50%); /* Move left by half the container width (one screen) */
+    }
+
     .player-section {
         padding: 1rem;
+        flex: 1 0 auto; /* Allow sections to take full width in column layout */
+        position: relative; /* For positioning the swap button */
+    }
+
+    .players-container.drafting-phase .player-section {
+        flex: 0 0 50%; /* Each panel takes up half of the 200% container width */
+        width: 50%;
     }
     
     .player-header {
         flex-direction: column;
         align-items: center;
         text-align: center;
+        gap: 0.5rem;
     }
     
     .player-title {
@@ -173,33 +198,81 @@
         width: 100%;
     }
     
+    /* NEW: Adjustments for filter bar on mobile */
+    .position-filter-bar {
+        top: 60px; /* height of collapsed mobile header */
+        padding: 0.5rem 0;
+    }
+
+    .inline-roster .position-group-title {
+        scroll-margin-top: 120px; /* mobile header + filter bar */
+    }
+    /* --- END NEW STYLES --- */
+    
     /* Inline roster adjustments */
     .inline-roster > div > div {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.5rem;
+    }
+
+    .player-draft-card {
+        padding: 0.5rem;
     }
     
     .player-card-header {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        gap: 0.5rem;
+        gap: 0.25rem;
+        padding: 0.25rem;
+        min-height: auto;
     }
     
+    .player-photo {
+        width: 35px;
+        height: 35px;
+    }
+
     .player-name-text {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        line-height: 1.2;
+        min-height: 2.4em; /* Reserve space for 2 lines of text */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .player-meta-text {
+        padding: 0.25rem;
+        font-size: 0.7rem;
+    }
+
+    .player-draft-card .draft-action-text {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
     }
     
     /* Fantasy roster mobile */
-    .fantasy-roster-slot {
+    .fantasy-roster-slots-container {
+        display: flex;
         flex-direction: column;
-        align-items: center;
-        text-align: center;
         gap: 0.5rem;
+    }
+
+    .fantasy-roster-slot {
+        display: flex; 
+        flex-direction: row; 
+        align-items: center;
+        justify-content: space-between;
+        text-align: left;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
     }
     
     .fantasy-roster-slot .slot-left-content {
-        flex-direction: column;
+        display: flex; 
+        flex-direction: row; 
+        align-items: center;
         gap: 0.5rem;
     }
     
@@ -212,6 +285,64 @@
     
     .total-fantasy-points::before {
         margin-bottom: 0.5rem;
+    }
+}
+
+/* NEW: Swap Button Styles */
+.swap-view-btn {
+    display: none; /* Hide by default */
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    /* 
+      --arrow-top-margin can be adjusted to change the distance from the top.
+      Default is 1rem, which matches the padding of the player section.
+    */
+    top: var(--arrow-top-margin, 1rem);
+    transform: none; /* remove vertical centering */
+    width: 40px;
+    height: 40px;
+    background: rgba(59, 130, 246, 0.3); /* a more visible background */
+    border: 1px solid rgba(59, 130, 246, 0.3); /* match transparency */
+    color: rgba(255, 255, 255, 0.3); /* arrow at 30% opacity */
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 20;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+/* Show the correct swap button based on which player view is active */
+.players-container.view-p1 #player1-section .swap-view-btn.swap-right,
+.players-container.view-p2 #player2-section .swap-view-btn.swap-left {
+    display: flex;
+}
+
+.swap-view-btn:hover {
+    background-color: #2563eb; /* Darker blue on hover */
+    transform: scale(1.1); /* Slight grow on hover */
+}
+.swap-view-btn.swap-right {
+    right: 1rem; /* Place inside the panel */
+}
+.swap-view-btn.swap-left {
+    left: 1rem; /* Place inside the panel */
+}
+.swap-view-btn.swap-left span {
+    transform: rotate(180deg);
+}
+
+@media (min-width: 769px) {
+    .swap-view-btn {
+        display: none;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .inline-roster > div > div {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 

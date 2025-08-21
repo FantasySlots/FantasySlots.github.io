@@ -116,7 +116,7 @@ body {
 
 /* Team Animation Overlay */
 .team-animation-overlay {
-    z-index: 1000;
+    z-index: 5000; /* Increased z-index */
 }
 .team-animation-overlay .animation-container {
     text-align: center;

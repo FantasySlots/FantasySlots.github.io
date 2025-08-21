@@ -349,6 +349,73 @@ function initializeCommonListeners() {
         showAvatarSelectionModal(2, playerData[2].avatar, AVATAR_SVGS, (pNum, avatarUrl) => gameMode === 'multiplayer' ? withFirebaseSync(selectAvatar)(pNum, avatarUrl) : selectAvatar(pNum, avatarUrl));
     });
 
+    // NEW: Add swipe gesture for mobile view swapping
+    const playersContainer = document.querySelector('.players-container');
+    let touchstartX = 0;
+    let touchendX = 0;
+    const swipeThreshold = 50; // minimum distance for a swipe in pixels
+    let isTouchingFilterBar = false; // Flag to prevent panel swipe when scrolling filters
+
+    function handleSwipe() {
+        if (window.innerWidth > 768) return; // Only for mobile devices
+
+        // If the swipe started on the filter bar, do not trigger panel swipe
+        if (isTouchingFilterBar) {
+            isTouchingFilterBar = false; // Reset for next touch
+            return;
+        }
+
+        const swipeDistance = touchendX - touchstartX;
+
+        if (Math.abs(swipeDistance) < swipeThreshold) {
+            return; // Ignore clicks and short swipes
+        }
+
+        if (swipeDistance < 0) { // Swiped left
+            if (playersContainer.classList.contains('view-p1')) {
+                playersContainer.classList.remove('view-p1');
+                playersContainer.classList.add('view-p2');
+            }
+        } else { // Swiped right
+            if (playersContainer.classList.contains('view-p2')) {
+                playersContainer.classList.remove('view-p2');
+                playersContainer.classList.add('view-p1');
+            }
+        }
+    }
+
+    playersContainer.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+        // Check if the touch event originated within a filter bar
+        if (e.target.closest('.position-filter-bar')) {
+            isTouchingFilterBar = true;
+        } else {
+            isTouchingFilterBar = false;
+        }
+    }, { passive: true });
+
+    playersContainer.addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, { passive: true });
+
+    // NEW: Add click listeners for mobile view swapping
+    const playersContainerMobile = document.querySelector('.players-container');
+    document.querySelectorAll('.swap-view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent clicks bubbling up
+            const targetPlayer = btn.dataset.target;
+            
+            // Toggle the view
+            if (playersContainerMobile.classList.contains(`view-p${targetPlayer}`)) {
+                // If we are already viewing the target, do nothing (or switch back, but this is simpler)
+            } else {
+                playersContainerMobile.classList.remove('view-p1', 'view-p2');
+                playersContainerMobile.classList.add(`view-p${targetPlayer}`);
+            }
+        });
+    });
+
     // Load saved data for both players and initialize playerData structure
     // In multiplayer, this is overwritten by Firebase, but useful for local mode.
     if (gameMode === 'local') {
@@ -410,6 +477,7 @@ function getOrCreateClientId() {
  * @param {object} [playersPresence={}] - The presence object for multiplayer from Firebase.
  */
 export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
+    const playersContainer = document.querySelector('.players-container');
     // Check game phase transition
     if (gameState.phase === 'NAME_ENTRY' && playerData[1].name && playerData[2].name) {
         setGamePhase('DRAFTING');
@@ -461,6 +529,26 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         fantasyPointInterval = null;
     }
 
+    // NEW: Add/remove drafting-phase class for mobile layout
+    if (gameState.phase === 'DRAFTING' || gameState.phase === 'COMPLETE') {
+        playersContainer.classList.add('drafting-phase');
+    } else {
+        playersContainer.classList.remove('drafting-phase');
+    }
+
+    // NEW: Set initial mobile view based on whose turn it is
+    if (window.innerWidth <= 768 && (gameState.phase === 'DRAFTING' || gameState.phase === 'COMPLETE')) {
+        if (shouldSwitchTurn) { // Only snap on turn switch
+            setTimeout(() => {
+                playersContainer.classList.remove('view-p1', 'view-p2');
+                playersContainer.classList.add(`view-p${gameState.currentPlayer}`);
+            }, 1500); // Add a 500ms delay before snapping
+        } else if (!playersContainer.classList.contains('view-p1') && !playersContainer.classList.contains('view-p2')) {
+            // On initial load of drafting phase, set to player 1's view
+            playersContainer.classList.add('view-p1');
+        }
+    }
+
     // NEW: Update multiplayer status UI
     const multiplayerStatusBox = document.getElementById('multiplayer-status-box');
     if (gameMode === 'multiplayer') {
@@ -484,7 +572,6 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
     }
 
     // NEW: Manage drafting view at a higher level to prevent conflicts.
-    const playersContainer = document.querySelector('.players-container');
     playersContainer.classList.remove('drafting-view', 'p1-drafting', 'p2-drafting'); // Reset first
 
     const p1Data = playerData[1];
@@ -527,24 +614,25 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
             playerSection.classList.add('non-local-player');
         }
 
-        // Handle visibility of name input vs team display based on game phase
+        // Handle visibility of name input vs team display based on whether the name is confirmed
         if (gameState.phase === 'NAME_ENTRY') {
+             // In NAME_ENTRY phase, show name input or a ready message.
             playerDisplayDiv.style.display = 'none';
-
-            if (playerData[playerNum].name) { // Player has confirmed their name
-                nameInputContainer.style.display = 'none';
-                readyMessageEl.textContent = `${playerData[playerNum].name} is ready`;
-                readyMessageEl.style.display = 'block';
-                renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
-            } else { // Player has not confirmed name
+            if (!playerData[playerNum].name) {
                 nameInputContainer.style.display = 'flex';
                 readyMessageEl.style.display = 'none';
-                renderPlayerAvatar(playerNum, `Player ${playerNum}`, null);
+            } else {
+                nameInputContainer.style.display = 'none';
+                readyMessageEl.style.display = 'block';
+                readyMessageEl.textContent = 'Ready! Waiting for opponent...';
             }
-        } else { // DRAFTING or COMPLETE phase
+             // Update title with name if available, otherwise "Player X"
+            renderPlayerAvatar(playerNum, playerData[playerNum].name || `Player ${playerNum}`, playerData[playerNum].avatar);
+        } else {
+            // Player HAS confirmed their name, show their game area
             nameInputContainer.style.display = 'none';
-            readyMessageEl.style.display = 'none';
             playerDisplayDiv.style.display = 'block';
+            readyMessageEl.style.display = 'none'; // No longer show "ready" message
 
             // Update player title with name and avatar
             renderPlayerAvatar(playerNum, playerData[playerNum].name, playerData[playerNum].avatar);
@@ -641,8 +729,12 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         if (activePlayerSection) {
             // Use a small timeout to allow the DOM to fully update before scrolling
             setTimeout(() => {
-                activePlayerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
+                // The 'start' block alignment ensures it scrolls to the top of the element.
+                window.scrollTo({
+                    top: activePlayerSection.offsetTop - document.querySelector('.game-header').offsetHeight,
+                    behavior: 'auto' // 'auto' makes it an instant snap instead of a smooth scroll
+                });
+            }, 550); // Delay slightly longer than the horizontal transition
         }
     }
 }

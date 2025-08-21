@@ -1,0 +1,231 @@
+/* 
+==============================================
+            GAME PAGE MOBILE STYLES
+==============================================
+*/
+
+/* Mobile-specific overrides for game.css */
+@media (max-width: 768px) {
+    .game-header {
+        padding: 0.5rem 1rem;
+        height: auto;
+        min-height: 60px; /* Set a min-height */
+        transition: height 0.3s ease-in-out;
+    }
+    
+    .header-content {
+        flex-direction: row; /* Changed from column to row */
+        flex-wrap: wrap; /* Allow items to wrap */
+        justify-content: space-between; /* Space between logo and button */
+        align-items: center; /* Vertically align items */
+        gap: 0;
+        height: auto;
+    }
+    
+    .site-logo-small {
+        height: 40px; /* Reduced size to fit better */
+    }
+
+    /* Collapsible Header Styles */
+    .collapsible-header {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        animation: fadeInDown 0.3s ease-out;
+    }
+
+    .game-header.header-open .collapsible-header {
+        display: flex;
+    }
+
+    /* Toggle Button Styles */
+    .header-toggle-btn {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        width: 30px;
+        height: 25px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    .header-toggle-btn:focus {
+        outline: none;
+    }
+    .header-toggle-btn .bar {
+        width: 100%;
+        height: 3px;
+        background-color: #E0E6EF;
+        border-radius: 10px;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .game-header.header-open .header-toggle-btn .bar:nth-child(1) {
+        transform: rotate(45deg) translate(7px, 6px);
+    }
+    .game-header.header-open .header-toggle-btn .bar:nth-child(2) {
+        opacity: 0;
+    }
+    .game-header.header-open .header-toggle-btn .bar:nth-child(3) {
+        transform: rotate(-45deg) translate(7px, -6px);
+    }
+    
+    #multiplayer-status-box {
+        width: 100%;
+        text-align: center;
+        margin-top: 0;
+        order: 1; /* Make it appear first in the collapsible section */
+    }
+    
+    #multiplayer-status-text {
+        font-size: 1rem;
+    }
+    
+    #share-link-container {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+        order: 2; /* Make it appear second */
+    }
+    
+    #share-link-container .share-link-text {
+        display: none;
+    }
+    
+    #share-link-input {
+        min-width: 100%;
+        margin-bottom: 0;
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    #copy-link-btn {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .players-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .player-section {
+        padding: 1rem;
+    }
+    
+    .player-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .player-title {
+        font-size: 1.25rem;
+    }
+    
+    .player-title .player-avatar-img {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .name-input-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .name-input {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .avatar-selection-area {
+        margin: 0;
+    }
+    
+    .team-info {
+        min-height: 100px;
+    }
+    
+    .team-logo {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .team-name {
+        font-size: 1.1rem;
+    }
+    
+    .team-selection {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .select-team-btn,
+    .auto-draft-btn,
+    .auto-draft-full-btn {
+        width: 100%;
+    }
+    
+    /* Inline roster adjustments */
+    .inline-roster > div > div {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .player-card-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .player-name-text {
+        font-size: 0.8rem;
+    }
+    
+    /* Fantasy roster mobile */
+    .fantasy-roster-slot {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .fantasy-roster-slot .slot-left-content {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .total-fantasy-points {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .total-fantasy-points::before {
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .player-section {
+        padding: 0.75rem;
+    }
+    
+    .team-logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .player-title {
+        font-size: 1.1rem;
+    }
+}

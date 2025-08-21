@@ -181,6 +181,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (gameMode === 'multiplayer') {
         await setupMultiplayerGame();
+        // If this is a new game, expand the header by default on mobile.
+        if (urlParams.get('new_game') === 'true') {
+            const gameHeader = document.querySelector('.game-header');
+            const headerToggleBtn = document.getElementById('header-toggle-btn');
+            if (gameHeader) {
+                gameHeader.classList.add('header-open');
+            }
+            if (headerToggleBtn) {
+                headerToggleBtn.setAttribute('aria-expanded', 'true');
+            }
+        }
     } else {
         setupLocalGame();
     }
@@ -291,6 +302,16 @@ async function setupMultiplayerGame() {
 }
 
 function initializeCommonListeners() {
+    // Header toggle for mobile
+    const headerToggleBtn = document.getElementById('header-toggle-btn');
+    const gameHeader = document.querySelector('.game-header');
+    if (headerToggleBtn && gameHeader) {
+        headerToggleBtn.addEventListener('click', () => {
+            const isExpanded = gameHeader.classList.toggle('header-open');
+            headerToggleBtn.setAttribute('aria-expanded', isExpanded);
+        });
+    }
+
     // Attach event listeners for modals (using IDs for direct access)
     document.querySelector('.close-roster').addEventListener('click', hideRosterModal); 
     document.querySelector('.cancel-slot-selection').addEventListener('click', hideSlotSelectionModal);
@@ -611,4 +632,17 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         // Always update avatar preview for the selection area
         updateAvatarPreview(playerNum, playerData[playerNum].avatar);
     });
+
+    // NEW: Scroll to active player on turn change for mobile
+    if (shouldSwitchTurn && window.innerWidth <= 768) {
+        const activePlayerNum = gameState.currentPlayer;
+        const activePlayerSection = document.getElementById(`player${activePlayerNum}-section`);
+
+        if (activePlayerSection) {
+            // Use a small timeout to allow the DOM to fully update before scrolling
+            setTimeout(() => {
+                activePlayerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }
 }

@@ -7,6 +7,7 @@
     <title>Fantasy Slots</title>
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="game.css">
+    <link rel="stylesheet" href="game-mobile.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -15,18 +16,23 @@
             <a href="index.html" class="logo-link">
                 <img src="https://i.postimg.cc/HLVXjSLh/output-onlinepngtools.png" alt="NFL Fantasy Slots Logo" class="site-logo-small">
             </a>
-            <div id="multiplayer-status-box" style="display: none;">
-                <p id="multiplayer-status-text"></p>
-              </div>
+            <button id="header-toggle-btn" class="header-toggle-btn" aria-label="Toggle header menu" aria-expanded="false">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+            <div id="collapsible-header" class="collapsible-header">
+                <div id="multiplayer-status-box" style="display: none;">
+                    <p id="multiplayer-status-text"></p>
+                </div>
                 <div id="share-link-container" style="display: none;">
-                 <p class="share-link-text">Share With Friends </p>
+                    <p class="share-link-text">Share With Friends </p>
                     <input type="text" id="share-link-input" readonly placeholder="Share this link with a friend!">
                     <button id="copy-link-btn">
                         <span>Copy</span>
                     </button>
                 </div>
-            
-            <div class="header-spacer"></div>
+            </div>
         </div>
     </header>
 

@@ -41,6 +41,11 @@ body {
     height: auto;
     margin-bottom: 1rem;
     animation: fadeIn 0.8s ease-out;
+    transition: transform 0.3s ease;
+}
+
+.site-logo:hover {
+    transform: scale(1.1);
 }
 
 .subtitle {
@@ -153,9 +158,9 @@ body {
 .avatar-selection-modal-content .modal-title { font-size: 2rem; color: #E0E6EF; margin-bottom: 1.5rem; text-align: center; font-weight: 700; }
 .avatar-options-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 1rem; justify-items: center; }
 .avatar-option { width: 60px; height: 60px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.1); border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
-.avatar-option:hover { background-color: rgba(255, 255, 255, 0.2); border-color: #3b82f6; }
+.avatar-option:hover { background-color: rgba(255, 255, 255, 0.2); border-color: #3b82f6; transform: scale(1.1); }
 .avatar-option.selected { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5); }
-.avatar-option img { width: 80%; height: 80%; object-fit: contain; filter: invert(1); }
+.avatar-option img { width: 80%; height: 80%; object-fit: contain; filter: invert(1); transition: transform 0.3s ease; }
 
 /* Slot Selection Modal */
 #slot-selection-modal { z-index: 3000; }

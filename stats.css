@@ -1,6 +1,9 @@
-/* 
+
+
+
+/*
 ==============================================
-            STATS PAGE STYLES
+            STATS PAGE STYLES (DESKTOP)
 ==============================================
 */
 .stats-page-body {
@@ -59,6 +62,10 @@
     transform: translateX(3px);
 }
 
+.team-list-item:hover img {
+    transform: scale(1.1);
+}
+
 .team-list-item.selected {
     background-color: rgba(174, 32, 18, 0.2);
     border-color: rgba(174, 32, 18, 0.5);
@@ -68,6 +75,7 @@
 .team-list-item img {
     width: 40px;
     height: 40px;
+    transition: transform 0.3s ease;
 }
 
 .roster-display-container {
@@ -106,6 +114,10 @@
 .roster-team-header img {
     width: 80px;
     height: 80px;
+    transition: transform 0.3s ease;
+}
+.roster-team-header img:hover {
+    transform: scale(1.1);
 }
 .roster-team-header h2 {
     font-size: 2.5rem;
@@ -131,6 +143,11 @@
     object-fit: cover;
     background-color: #1f2937;
     border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.player-photo:hover {
+    transform: scale(1.1);
 }
 
 .player-card-header {
@@ -165,39 +182,4 @@
     transform: translateY(-3px);
     background: rgba(26, 35, 49, 0.6) !important;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-/* 
-==============================================
-            RESPONSIVENESS
-==============================================
-*/
-@media (max-width: 900px) {
-    .stats-main-content {
-        flex-direction: column;
-    }
-    .team-list-container {
-        flex-basis: auto;
-        width: 100%;
-        max-height: 250px; /* Make it scrollable horizontally */
-    }
-    .team-list {
-        flex-direction: row; /* Horizontal scrolling for teams on mobile */
-        overflow-x: auto;
-        padding-bottom: 1rem; /* Space for scrollbar */
-    }
-    .team-list-item {
-        flex-direction: column;
-        min-width: 100px;
-        text-align: center;
-        gap: 0.5rem;
-    }
-    .roster-team-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-    }
-    .roster-team-header h2 {
-        font-size: 2rem;
-    }
 }

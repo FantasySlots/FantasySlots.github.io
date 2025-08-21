@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // Redirect to the game page with the new room ID
-            window.location.href = `game.html?room=${newGameId}`;
+            window.location.href = `game.html?room=${newGameId}&new_game=true`;
 
         } catch (error) {
             console.error("Failed to create multiplayer room:", error);

@@ -1,0 +1,56 @@
+/* 
+==============================================
+            LANDING PAGE MOBILE STYLES
+==============================================
+*/
+
+/* Mobile-specific overrides for landing.css */
+@media (max-width: 768px) {
+    .landing-page-body {
+        padding: 1rem;
+    }
+    
+    .landing-page-container {
+        padding: 1.5rem 1rem;
+        margin: 1rem;
+    }
+    
+    .site-logo {
+        max-width: 250px;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+    }
+    
+    .landing-options {
+        gap: 1rem;
+    }
+    
+    .landing-button {
+        max-width: 280px;
+        padding: 1.2rem 2rem;
+        font-size: 1.2rem;
+    }
+    
+    .back-button {
+        margin-top: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .landing-page-container {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+    
+    .site-logo {
+        max-width: 200px;
+    }
+    
+    .landing-button {
+        max-width: 250px;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+    }
+}

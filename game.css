@@ -1,6 +1,6 @@
 /* 
 ==============================================
-            GAME PAGE STYLES (OVERHAUL)
+            GAME PAGE STYLES (DESKTOP)
 ==============================================
 */
 
@@ -28,7 +28,7 @@
 .site-logo-small 
 {
   
-    height: 120px;
+    height: 70px;
     width: auto;
    transition: transform 0.3s ease;
 }
@@ -76,6 +76,10 @@
     flex-wrap: wrap;
     width: 100%;
     max-width: 550px;
+}
+#share-link-container .share-link-text {
+    font-weight: 500;
+    color: #8A9BBF;
 }
 #share-link-input {
     flex-grow: 1;
@@ -186,8 +190,8 @@
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0; /* Cover the entire relative parent */
+    right: 0; /* Cover the entire relative parent */
+    bottom: 0;
     background: rgba(16, 25, 53, 0.9);
     backdrop-filter: blur(4px);
     display: none; /* Hidden by default */
@@ -299,6 +303,11 @@
     border-radius: 50%;
     padding: 5px;
     filter: invert(1);
+    transition: transform 0.3s ease;
+}
+
+.player-title .player-avatar-img:hover {
+    transform: scale(1.1);
 }
 
 .player-ready-message {
@@ -401,6 +410,11 @@
     background-color: rgba(255, 255, 255, 0.05);
     padding: 5px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.team-logo:hover {
+    transform: scale(1.1);
 }
 
 .team-logo.is-avatar {
@@ -440,6 +454,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+}
+
+/* Hide toggle button on desktop */
+.header-toggle-btn {
+    display: none;
 }
 
 .confirm-name-btn {
@@ -580,6 +599,11 @@
     object-fit: cover;
     background-color: #1f2937;
     border: none;
+    transition: transform 0.3s ease;
+}
+
+.player-photo:hover {
+    transform: scale(1.1);
 }
 
 .player-card-header {
@@ -639,7 +663,8 @@
 .fantasy-roster-slot:hover { background: rgba(0,0,0,0.3); }
 .fantasy-roster-slot .slot-left-content { display: flex; align-items: center; gap: 0.75rem; }
 .fantasy-roster-slot .slot-label { font-size: 0.8rem; font-weight: 700; color: #8A9BBF; min-width: 40px; text-transform: uppercase; }
-.player-photo-fantasy { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background-color: #1f2937; }
+.player-photo-fantasy { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background-color: #1f2937; transition: transform 0.3s ease; }
+.player-photo-fantasy:hover { transform: scale(1.1); }
 .fantasy-roster-slot .player-name-fantasy { font-size: 0.9rem; font-weight: 500; color: #E0E6EF; flex-grow: 1; }
 .fantasy-roster-slot .slot-right-content { text-align: right; }
 .fantasy-roster-slot .points-display { font-size: 0.9rem; font-weight: 600; }
@@ -691,20 +716,4 @@
     .players-container.drafting-view.p2-drafting {
         grid-template-columns: 1fr;
     }
-}
-
-@media (max-width: 768px) {
-    .game-header { padding: 0.5rem 1rem; }
-    .header-content { flex-wrap: wrap; }
-    #multiplayer-status-box { width: 100%; text-align: center; margin-top: 0.5rem; }
-
-    .players-container { grid-template-columns: 1fr; gap: 1.5rem; }
-    .player-section { padding: 1.5rem; }
-    
-    .name-input-container { flex-wrap: wrap; }
-    .name-input { min-width: 0; flex-basis: 100%; margin-bottom: 0.5rem; }
-    .avatar-selection-area { margin-left: auto; }
-
-    .team-selection { flex-direction: column; }
-    .select-team-btn, .auto-draft-btn, .auto-draft-full-btn { width: 100%; }
 }

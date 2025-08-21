@@ -1,0 +1,110 @@
+
+
+
+/* 
+==============================================
+            STATS PAGE MOBILE STYLES
+==============================================
+*/
+
+/* Mobile-specific overrides for stats.css */
+@media (max-width: 900px) {
+    .stats-main-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .team-list-container {
+        flex-basis: auto;
+        width: 100%;
+        max-height: 200px;
+        padding: 0.5rem;
+    }
+    
+    .team-list {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    .team-list-item {
+        flex-direction: column;
+        min-width: 80px;
+        text-align: center;
+        gap: 0.25rem;
+        padding: 0.5rem;
+    }
+    
+    .team-list-item img {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .team-list-item span {
+        font-size: 0.8rem;
+    }
+    
+    .roster-display-container {
+        padding: 1rem;
+    }
+    
+    .roster-team-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .roster-team-header img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .roster-team-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .roster-display-container > div > div {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .player-draft-card {
+        padding: 1rem;
+    }
+    
+    .player-photo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .player-name-text {
+        font-size: 0.9rem;
+    }
+    
+    .player-meta-text {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .team-list-container {
+        max-height: 150px;
+    }
+    
+    .team-list-item {
+        min-width: 70px;
+        padding: 0.25rem;
+    }
+    
+    .team-list-item img {
+        width: 25px;
+        height: 25px;
+    }
+    
+    .roster-team-header h2 {
+        font-size: 1.25rem;
+    }
+}
+

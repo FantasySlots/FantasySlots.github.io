@@ -9,6 +9,8 @@ export function showTeamAnimationOverlay(text, logoSrc = '', isAvatar = false) {
     const cyclingLogo = document.getElementById('cycling-logo');
     const animationText = document.getElementById('animation-text');
 
+    if (!cyclingLogo) return; // Add guard to prevent errors if element is not found
+
     animationText.textContent = text;
 
     if (logoSrc) {

@@ -62,7 +62,8 @@ async function syncWithFirebase() {
   } catch (error) {
     console.error("Firebase sync failed:", error);
   } finally {
-    setTimeout(() => { isSyncing = false; }, 200);
+    // A short delay before resetting the flag helps prevent rapid, repeated syncs.
+    setTimeout(() => { isSyncing = false; }, 100);
   }
 }
 /**
@@ -235,23 +236,27 @@ async function setupMultiplayerGame() {
 
     const gameData = snapshot.val();
     const playersNode = gameData.players || {};
+    const player1 = playersNode.player1;
+    const player2 = playersNode.player2;
 
-    if (!playersNode.player1 || playersNode.player1.clientId === clientId) {
+    // Revised player slot assignment logic
+    if (!player1 || !player1.connected || player1.clientId === clientId) {
+        // Slot 1 is available if it doesn't exist, is not connected, or is me.
         localPlayerNum = 1;
         playerRef = ref(db, `games/${roomId}/players/player1`);
-        // Use update to avoid removing other player's presence
-        await update(ref(db, `games/${roomId}/players`), { player1: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
-    } else if (!playersNode.player2 || playersNode.player2.clientId === clientId) {
+        await update(playerRef, { clientId: clientId, connected: true, lastSeen: serverTimestamp() });
+    } else if (!player2 || !player2.connected || player2.clientId === clientId) {
+        // Slot 2 is available if it doesn't exist, is not connected, or is me.
         localPlayerNum = 2;
         playerRef = ref(db, `games/${roomId}/players/player2`);
-        await update(ref(db, `games/${roomId}/players`), { player2: { clientId: clientId, connected: true, lastSeen: serverTimestamp() } });
+        await update(playerRef, { clientId: clientId, connected: true, lastSeen: serverTimestamp() });
     } else {
         alert("This game room is full!");
         window.location.href = 'index.html';
         return;
     }
     
-    await onDisconnect(playerRef).update({ connected: false });
+    await onDisconnect(playerRef).update({ connected: false, lastSeen: serverTimestamp() });
 
     console.log(`You are Player ${localPlayerNum}`);
     

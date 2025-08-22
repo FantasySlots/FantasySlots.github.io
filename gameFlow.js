@@ -5,7 +5,7 @@
 import { gameState, playerData, isFantasyRosterFull, switchTurn } from './playerState.js';
 import { shuffleArray, getRandomElement, delay, getCachedData, setCachedData } from './utils.js';
 import { showSlotSelectionModal, hideSlotSelectionModal } from './uiModals.js';
-import { showTeamAnimationOverlay, hideTeamAnimationOverlay } from './uiAnimations.js';
+import { showTeamAnimationOverlay, hideTeamAnimationOverlay, startLogoCyclingAnimation, stopLogoCyclingAnimation } from './uiAnimations.js';
 import { teams } from './data.js';
 import { updateLayout } from './game.js';
 
@@ -18,71 +18,59 @@ export async function selectTeam(playerNum) {
         alert("It's not your turn!");
         return;
     }
-    // If roster is full, prevent new team selection or auto-draft.
     if (isFantasyRosterFull(playerNum)) {
         alert('Your fantasy roster is full! You cannot draft more players.');
         return;
     }
 
-    // Reset current team's drafted players for a new drafting turn
     playerData[playerNum].team = null;
     playerData[playerNum].draftedPlayers = []; 
     console.log(`Player ${playerNum}: draftedPlayers reset to [] after selecting new team.`);
     
-    // Clear the player content area immediately for the animation
     document.getElementById(`player${playerNum}-content-area`).innerHTML = ''; 
 
-    showTeamAnimationOverlay('Selecting your team...', '', false); // Show animation overlay
+    showTeamAnimationOverlay('Selecting your team...');
     
-    // Animate through logos using a shuffled array for a more random feel
     const shuffledTeams = shuffleArray([...teams]);
-    let currentIndex = 0;
-    const animationDuration = 3100; // 3.1 seconds
-    const interval = 100; // Change logo every 100ms
-    
-    const animateInterval = setInterval(() => {
-        const currentTeamLogo = shuffledTeams[currentIndex % shuffledTeams.length].logo;
-        showTeamAnimationOverlay('Selecting your team...', currentTeamLogo, false); // Update logo during animation
-        currentIndex++;
-    }, interval);
-    
-    // Select random team after animation duration
+    const logos = shuffledTeams.map(t => ({ src: t.logo, isAvatar: false }));
+    const animationDuration = 3100;
+
+    startLogoCyclingAnimation(logos, 100);
+
     setTimeout(async () => {
-        clearInterval(animateInterval);
-        const randomTeam = teams[Math.floor(Math.random() * teams.length)];
+        stopLogoCyclingAnimation();
+        
+        const randomTeam = getRandomElement(teams);
         playerData[playerNum].team = randomTeam; 
         
         showTeamAnimationOverlay(`Selected: ${randomTeam.name}`, randomTeam.logo, false); 
         
-        // Wait a bit then hide animation and update UI
-        setTimeout(async () => {
-            hideTeamAnimationOverlay(); 
-            
-            // Fetch roster and display draft interface
-            try {
-                const rosterCacheKey = `espn-roster-${randomTeam.id}`;
-                const TTL = 10 * 60 * 1000; // 10 minutes
-                let rosterData = getCachedData(rosterCacheKey);
+        await delay(500);
 
-                if (!rosterData) {
-                    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
-                    const data = await response.json();
-                    if (data.athletes) {
-                        rosterData = data.athletes;
-                        setCachedData(rosterCacheKey, rosterData, TTL);
-                    }
+        hideTeamAnimationOverlay(); 
+        
+        try {
+            const rosterCacheKey = `espn-roster-${randomTeam.id}`;
+            const TTL = 10 * 60 * 1000; // 10 minutes
+            let rosterData = getCachedData(rosterCacheKey);
+
+            if (!rosterData) {
+                const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${randomTeam.id}/roster`);
+                const data = await response.json();
+                if (data.athletes) {
+                    rosterData = data.athletes;
+                    setCachedData(rosterCacheKey, rosterData, TTL);
                 }
-                
-                if (rosterData) {
-                    playerData[playerNum].team.rosterData = rosterData; 
-                    localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum])); // Save state after team selection
-                }
-            } catch (error) {
-                console.error('Error fetching roster:', error);
             }
-            // Update layout based on new team selection
-            updateLayout();
-        }, 500);
+            
+            if (rosterData) {
+                playerData[playerNum].team.rosterData = rosterData; 
+                localStorage.setItem(`fantasyTeam_${playerNum}`, JSON.stringify(playerData[playerNum]));
+            }
+        } catch (error) {
+            console.error('Error fetching roster:', error);
+        }
+        updateLayout();
     }, animationDuration);
 }
 
@@ -138,15 +126,15 @@ export async function autoDraft(playerNum) {
     }
 
     showTeamAnimationOverlay('Auto-drafting a player...');
-
+    
     const animationDuration = 3000;
-    let headshotsForAnimation = [];
-    let animationTeamIndex = 0;
-    let headshotIndex = 0;
+    let animationLogos = [];
+    let teamsForAnimation = shuffleArray([...teams]);
 
-    const fetchHeadshotsForAnimation = async () => {
+    const fetchLogosForAnimation = async () => {
+        if (teamsForAnimation.length === 0) return;
+        const team = teamsForAnimation.pop();
         try {
-            const team = teams[animationTeamIndex % teams.length];
             const rosterCacheKey = `espn-roster-${team.id}`;
             const TTL = 10 * 60 * 1000; // 10 minutes
             let rosterData = getCachedData(rosterCacheKey);
@@ -154,48 +142,37 @@ export async function autoDraft(playerNum) {
             if (!rosterData) {
                 const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/roster`);
                 const data = await response.json();
-                if (data.athletes) {
-                    rosterData = data.athletes;
-                    setCachedData(rosterCacheKey, rosterData, TTL);
-                }
+                rosterData = data?.athletes;
+                if (rosterData) setCachedData(rosterCacheKey, rosterData, TTL);
             }
 
             if (rosterData) {
-                const newHeadshots = rosterData
+                const headshots = rosterData
                     .flatMap(pg => pg.items || [])
                     .map(p => p.headshot?.href)
                     .filter(Boolean);
-                if (newHeadshots.length > 0) {
-                    headshotsForAnimation.push(...newHeadshots);
+                if (headshots.length > 0) {
+                    animationLogos.push(...shuffleArray(headshots).map(src => ({ src, isAvatar: false })));
+                } else {
+                     animationLogos.push({ src: team.logo, isAvatar: false });
                 }
+            } else {
+                animationLogos.push({ src: team.logo, isAvatar: false });
             }
         } catch (error) {
             console.warn('Could not fetch headshots for animation:', error);
+            animationLogos.push({ src: team.logo, isAvatar: false });
         }
-        animationTeamIndex++;
     };
 
-    await fetchHeadshotsForAnimation();
+    // Preload some logos
+    await Promise.all([fetchLogosForAnimation(), fetchLogosForAnimation()]);
 
-    const animateInterval = setInterval(() => {
-        if (headshotIndex >= headshotsForAnimation.length - 5) {
-            fetchHeadshotsForAnimation();
-        }
-        if (headshotsForAnimation.length > 0) {
-            const currentHeadshot = headshotsForAnimation[headshotIndex % headshotsForAnimation.length];
-            showTeamAnimationOverlay('Searching for a player...', currentHeadshot, false);
-            headshotIndex++;
-        } else {
-            const currentTeamLogo = teams[animationTeamIndex % teams.length].logo;
-            showTeamAnimationOverlay('Searching for a player...', currentTeamLogo, false);
-            animationTeamIndex++;
-        }
-    }, 150);
+    startLogoCyclingAnimation(animationLogos, 150, fetchLogosForAnimation);
 
-    // This promise will handle the core drafting logic
     const draftingPromise = (async () => {
-        await delay(animationDuration - 1500); // Wait for part of the animation
-        clearInterval(animateInterval);
+        await delay(animationDuration - 1500);
+        stopLogoCyclingAnimation();
 
         try {
             let draftedPlayer = null;

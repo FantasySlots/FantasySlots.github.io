@@ -124,6 +124,7 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative; /* For positioning logo children */
 }
 .cycling-logo {
     width: 200px;
@@ -136,6 +137,24 @@ body {
     padding: 5px;
     border: 2px solid rgba(255, 255, 255, 0.2);
 }
+/* NEW: Styles for cross-fading logo animation */
+.cycling-logo-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 1.5rem;
+}
+.cycling-logo-container .cycling-logo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-bottom: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+.cycling-logo-container .cycling-logo.fade-out {
+    opacity: 0;
+}
+/* END NEW STYLES */
 .cycling-logo.is-avatar {
     filter: invert(1);
 }

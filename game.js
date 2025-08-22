@@ -236,24 +236,39 @@ async function setupMultiplayerGame() {
 
     const gameData = snapshot.val();
     const playersNode = gameData.players || {};
-    const player1 = playersNode.player1;
-    const player2 = playersNode.player2;
 
-    // Revised player slot assignment logic
-    if (!player1 || !player1.connected || player1.clientId === clientId) {
-        // Slot 1 is available if it doesn't exist, is not connected, or is me.
+    // Determine if the current client is already in the room
+    const isPlayer1 = playersNode.player1?.clientId === clientId;
+    const isPlayer2 = playersNode.player2?.clientId === clientId;
+
+    if (isPlayer1) {
         localPlayerNum = 1;
         playerRef = ref(db, `games/${roomId}/players/player1`);
-        await update(playerRef, { clientId: clientId, connected: true, lastSeen: serverTimestamp() });
-    } else if (!player2 || !player2.connected || player2.clientId === clientId) {
-        // Slot 2 is available if it doesn't exist, is not connected, or is me.
+        // Refresh connection status
+        await update(playerRef, { connected: true, lastSeen: serverTimestamp() });
+    } else if (isPlayer2) {
         localPlayerNum = 2;
         playerRef = ref(db, `games/${roomId}/players/player2`);
-        await update(playerRef, { clientId: clientId, connected: true, lastSeen: serverTimestamp() });
+        // Refresh connection status
+        await update(playerRef, { connected: true, lastSeen: serverTimestamp() });
     } else {
-        alert("This game room is full!");
-        window.location.href = 'index.html';
-        return;
+        // Client is not in the room, find a free slot.
+        const p1_occupied = playersNode.player1 && playersNode.player1.connected;
+        const p2_occupied = playersNode.player2 && playersNode.player2.connected;
+
+        if (!p1_occupied) {
+            localPlayerNum = 1;
+            playerRef = ref(db, `games/${roomId}/players/player1`);
+            await update(playerRef, { clientId: clientId, connected: true, lastSeen: serverTimestamp() });
+        } else if (!p2_occupied) {
+            localPlayerNum = 2;
+            playerRef = ref(db, `games/${roomId}/players/player2`);
+            await update(playerRef, { clientId: clientId, connected: true, lastSeen: serverTimestamp() });
+        } else {
+            alert("This game room is full!");
+            window.location.href = 'index.html';
+            return;
+        }
     }
     
     await onDisconnect(playerRef).update({ connected: false, lastSeen: serverTimestamp() });

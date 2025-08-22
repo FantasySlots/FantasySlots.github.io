@@ -538,9 +538,15 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
 
     // NEW: Set initial mobile view based on whose turn it is
     if (window.innerWidth <= 768 && (gameState.phase === 'DRAFTING' || gameState.phase === 'COMPLETE')) {
-        if (shouldSwitchTurn) { // Only snap on turn switch
+        // When a turn switch occurs, snap the view to the new current player.
+        if (shouldSwitchTurn) { 
             playersContainer.classList.remove('view-p1', 'view-p2');
             playersContainer.classList.add(`view-p${gameState.currentPlayer}`);
+            // Scroll to the top of the new panel
+            const targetPanel = document.getElementById(`player${gameState.currentPlayer}-section`);
+            if (targetPanel) {
+                targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         } else if (!playersContainer.classList.contains('view-p1') && !playersContainer.classList.contains('view-p2')) {
             // On initial load of drafting phase, set to player 1's view
             playersContainer.classList.add('view-p1');

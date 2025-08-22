@@ -34,15 +34,16 @@ export async function selectTeam(playerNum) {
 
     showTeamAnimationOverlay('Selecting your team...', '', false); // Show animation overlay
     
-    // Animate through logos
+    // Animate through logos using a shuffled array for a more random feel
+    const shuffledTeams = shuffleArray([...teams]);
     let currentIndex = 0;
-    const animationDuration = 3100; // 2.5 seconds
-    const interval = 100; // Change every 100ms
+    const animationDuration = 3100; // 3.1 seconds
+    const interval = 100; // Change logo every 100ms
     
     const animateInterval = setInterval(() => {
-        const currentTeamLogo = teams[currentIndex].logo;
+        const currentTeamLogo = shuffledTeams[currentIndex % shuffledTeams.length].logo;
         showTeamAnimationOverlay('Selecting your team...', currentTeamLogo, false); // Update logo during animation
-        currentIndex = (currentIndex + 1) % teams.length;
+        currentIndex++;
     }, interval);
     
     // Select random team after animation duration

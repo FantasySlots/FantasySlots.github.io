@@ -539,10 +539,8 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
     // NEW: Set initial mobile view based on whose turn it is
     if (window.innerWidth <= 768 && (gameState.phase === 'DRAFTING' || gameState.phase === 'COMPLETE')) {
         if (shouldSwitchTurn) { // Only snap on turn switch
-            setTimeout(() => {
-                playersContainer.classList.remove('view-p1', 'view-p2');
-                playersContainer.classList.add(`view-p${gameState.currentPlayer}`);
-            }, 1500); // Add a 500ms delay before snapping
+            playersContainer.classList.remove('view-p1', 'view-p2');
+            playersContainer.classList.add(`view-p${gameState.currentPlayer}`);
         } else if (!playersContainer.classList.contains('view-p1') && !playersContainer.classList.contains('view-p2')) {
             // On initial load of drafting phase, set to player 1's view
             playersContainer.classList.add('view-p1');
@@ -720,21 +718,4 @@ export function updateLayout(shouldSwitchTurn = false, playersPresence = {}) {
         // Always update avatar preview for the selection area
         updateAvatarPreview(playerNum, playerData[playerNum].avatar);
     });
-
-    // NEW: Scroll to active player on turn change for mobile
-    if (shouldSwitchTurn && window.innerWidth <= 768) {
-        const activePlayerNum = gameState.currentPlayer;
-        const activePlayerSection = document.getElementById(`player${activePlayerNum}-section`);
-
-        if (activePlayerSection) {
-            // Use a small timeout to allow the DOM to fully update before scrolling
-            setTimeout(() => {
-                // The 'start' block alignment ensures it scrolls to the top of the element.
-                window.scrollTo({
-                    top: activePlayerSection.offsetTop - document.querySelector('.game-header').offsetHeight,
-                    behavior: 'auto' // 'auto' makes it an instant snap instead of a smooth scroll
-                });
-            }, 550); // Delay slightly longer than the horizontal transition
-        }
-    }
 }

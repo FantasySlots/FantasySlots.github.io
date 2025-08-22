@@ -112,7 +112,7 @@
     .players-container {
         display: flex;
         flex-direction: column; /* Default to stacked for name entry */
-        transition: transform 0.3s ease-in-out; /* A slightly faster, smoother transition */
+        transition: transform 0.4s ease-in-out; /* Changed from all to transform */
         gap: 0; /* Removed gap for side-by-side view */
         padding: 0;
         width: 100%;
